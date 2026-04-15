@@ -1,15 +1,17 @@
-import { Link } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { plans } from '@/mocks/plans';
 
 export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
+  const router = useRouter();
   const featuredPlan = plans[1];
 
   return (
@@ -23,46 +25,46 @@ export default function HomeScreen() {
         }}
         contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
-          <View style={styles.heroSection}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              Expo + React Native starter
+          <ThemedView type="surfaceElevated" style={styles.heroSection}>
+            <ThemedText type="eyebrow" themeColor="textSecondary">
+              Subscription intelligence for Korean users
             </ThemedText>
             <ThemedText type="title" style={styles.title}>
-              Subscription Mobile
+              Paynesto
             </ThemedText>
-            <ThemedText style={styles.lead}>
-              A clean starting point for a customer-facing subscription app with room to grow into
-              billing, account, and retention workflows.
+            <ThemedText style={styles.lead} themeColor="textSecondary">
+              Keep recurring payments, salary-based spending guidance, and USD billing estimates in
+              one calm mobile experience.
             </ThemedText>
-          </View>
+            <Button onPress={() => router.push('/plans')}>Open plans</Button>
+          </ThemedView>
 
           <SectionCard
             eyebrow="Ready now"
             title="Project scaffold"
-            description="Expo Router, TypeScript strict mode, linting, and a simple two-tab shell are already in place.">
+            description="Expo Router, TypeScript strict mode, linting, and the Step 2 design-system baseline are already in place.">
             <View style={styles.bulletList}>
-              <ThemedText>- Home tab for product and setup overview</ThemedText>
-              <ThemedText>- Plans tab backed by local mock data</ThemedText>
-              <ThemedText>- Shared UI card component for fast screen building</ThemedText>
+              <ThemedText>- Product-facing theme, spacing, and typography tokens</ThemedText>
+              <ThemedText>- Shared card, button, and input building blocks</ThemedText>
+              <ThemedText>- Plans tab backed by local mock data for fast iteration</ThemedText>
             </View>
           </SectionCard>
 
           <SectionCard
             eyebrow="Suggested next work"
             title="Build the customer journey"
+            tone="accent"
             description="The next screens to add are sign-in, checkout, subscription detail, and billing history.">
-            <Link href="/plans" asChild>
-              <Pressable style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-                <ThemedText style={styles.primaryButtonText}>Open plans</ThemedText>
-              </Pressable>
-            </Link>
+            <Button variant="secondary" onPress={() => router.push('/plans')}>
+              Review plans
+            </Button>
           </SectionCard>
 
           <SectionCard
             eyebrow="Featured plan"
             title={`${featuredPlan.name} ${featuredPlan.priceLabel}/${featuredPlan.billingCycle}`}
             description={featuredPlan.description}>
-            <ThemedText type="small" themeColor="textSecondary">
+            <ThemedText type="bodySm" themeColor="textSecondary">
               {featuredPlan.seatLabel}
             </ThemedText>
           </SectionCard>
@@ -90,7 +92,9 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     gap: 12,
-    paddingVertical: 8,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   title: {
     maxWidth: 520,
@@ -100,20 +104,5 @@ const styles = StyleSheet.create({
   },
   bulletList: {
     gap: 8,
-  },
-  primaryButton: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    backgroundColor: '#1f6feb',
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontWeight: 700,
-  },
-  pressed: {
-    opacity: 0.85,
   },
 });
