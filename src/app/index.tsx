@@ -1,98 +1,119 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
+import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import { plans } from '@/mocks/plans';
 
 export default function HomeScreen() {
+  const safeAreaInsets = useSafeAreaInsets();
+  const featuredPlan = plans[1];
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <ThemedView style={styles.page}>
+      <ScrollView
+        contentInset={{
+          top: safeAreaInsets.top,
+          left: safeAreaInsets.left,
+          right: safeAreaInsets.right,
+          bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+        }}
+        contentContainerStyle={styles.scrollContent}>
+        <View style={styles.container}>
+          <View style={styles.heroSection}>
+            <ThemedText type="smallBold" themeColor="textSecondary">
+              Expo + React Native starter
+            </ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Subscription Mobile
+            </ThemedText>
+            <ThemedText style={styles.lead}>
+              A clean starting point for a customer-facing subscription app with room to grow into
+              billing, account, and retention workflows.
+            </ThemedText>
+          </View>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+          <SectionCard
+            eyebrow="Ready now"
+            title="Project scaffold"
+            description="Expo Router, TypeScript strict mode, linting, and a simple two-tab shell are already in place.">
+            <View style={styles.bulletList}>
+              <ThemedText>- Home tab for product and setup overview</ThemedText>
+              <ThemedText>- Plans tab backed by local mock data</ThemedText>
+              <ThemedText>- Shared UI card component for fast screen building</ThemedText>
+            </View>
+          </SectionCard>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+          <SectionCard
+            eyebrow="Suggested next work"
+            title="Build the customer journey"
+            description="The next screens to add are sign-in, checkout, subscription detail, and billing history.">
+            <Link href="/plans" asChild>
+              <Pressable style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
+                <ThemedText style={styles.primaryButtonText}>Open plans</ThemedText>
+              </Pressable>
+            </Link>
+          </SectionCard>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+          <SectionCard
+            eyebrow="Featured plan"
+            title={`${featuredPlan.name} ${featuredPlan.priceLabel}/${featuredPlan.billingCycle}`}
+            description={featuredPlan.description}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {featuredPlan.seatLabel}
+            </ThemedText>
+          </SectionCard>
+        </View>
+      </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 24,
+  },
+  container: {
+    width: '100%',
     maxWidth: MaxContentWidth,
+    gap: 16,
   },
   heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    gap: 12,
+    paddingVertical: 8,
   },
   title: {
-    textAlign: 'center',
+    maxWidth: 520,
   },
-  code: {
-    textTransform: 'uppercase',
+  lead: {
+    maxWidth: 560,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  bulletList: {
+    gap: 8,
+  },
+  primaryButton: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    backgroundColor: '#1f6feb',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  primaryButtonText: {
+    color: '#ffffff',
+    fontWeight: 700,
+  },
+  pressed: {
+    opacity: 0.85,
   },
 });
