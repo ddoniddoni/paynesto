@@ -1,6 +1,6 @@
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CenteredState } from '@/components/shared/centered-state';
@@ -12,39 +12,79 @@ import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/th
 import { useAuthSession } from '@/features/auth/hooks/use-auth-session';
 import { signOut } from '@/features/auth/services/auth-service';
 import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
+import { formatExchangeRate } from '@/features/exchange-rate/utils/exchange-rate-utils';
+import { HomeActionCard } from '@/features/home/components/home-action-card';
+import { HomeMetricCard } from '@/features/home/components/home-metric-card';
+import { createHomeDashboardSummary } from '@/features/home/utils/home-dashboard-utils';
+import { useFinancialProfileQuery } from '@/features/money-plan/hooks/use-money-plan';
 import {
-  formatEstimatedKrw,
-  formatExchangeRate,
-  getUsdSubscriptionEstimates,
-} from '@/features/exchange-rate/utils/exchange-rate-utils';
+  formatHealthStatus,
+  formatMoneyAmount,
+  formatMoneyRatio,
+} from '@/features/money-plan/utils/money-plan-utils';
 import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
-import {
-  getNextUpcomingSubscription,
-  getTrialEndingCount,
-} from '@/features/subscriptions/utils/subscription-utils';
+import { formatSubscriptionAmount } from '@/features/subscriptions/utils/subscription-utils';
 import { formatAppDate } from '@/lib/date';
+
+function formatDaysUntilBilling(daysUntilBilling: number | null) {
+  if (daysUntilBilling === null) {
+    return 'No billing scheduled';
+  }
+
+  if (daysUntilBilling < 0) {
+    return 'Billing date passed';
+  }
+
+  if (daysUntilBilling === 0) {
+    return 'Today';
+  }
+
+  return `In ${daysUntilBilling} day${daysUntilBilling === 1 ? '' : 's'}`;
+}
 
 export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const router = useRouter();
   const { user } = useAuthSession();
   const subscriptionsQuery = useSubscriptionsQuery();
+  const profileQuery = useFinancialProfileQuery();
   const snapshotQuery = useLatestUsdKrwSnapshotQuery();
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const isWideLayout = width >= 720;
   const subscriptions = subscriptionsQuery.data?.data ?? [];
-  const nextBilling = getNextUpcomingSubscription(subscriptions);
-  const usdEstimates = getUsdSubscriptionEstimates(subscriptions, snapshotQuery.data?.data ?? null);
-  const totalUsdEstimate = usdEstimates.reduce(
-    (sum, estimate) => sum + estimate.estimatedKrwAmount,
-    0
-  );
-  const sourceLabel =
+  const profile = profileQuery.data?.data ?? null;
+  const snapshot = snapshotQuery.data?.data ?? null;
+  const summary = createHomeDashboardSummary({
+    subscriptions,
+    profile,
+    snapshot,
+  });
+
+  const subscriptionSourceLabel =
     subscriptionsQuery.data?.source === 'preview'
-      ? 'Preview mode'
+      ? 'Preview subscriptions'
       : subscriptionsQuery.data?.source === 'supabase'
-        ? 'Supabase sync'
-        : 'Loading';
+        ? 'Supabase subscriptions'
+        : 'Loading subscriptions';
+  const profileSourceLabel =
+    profileQuery.data?.source === 'preview'
+      ? 'Preview money plan'
+      : profileQuery.data?.source === 'supabase'
+        ? 'Supabase money plan'
+        : profileQuery.isError
+          ? 'Money Plan unavailable'
+          : 'Loading money plan';
+  const fxSourceLabel =
+    snapshotQuery.data?.source === 'preview'
+      ? 'Preview FX'
+      : snapshotQuery.data?.source === 'supabase'
+        ? 'Live FX sync'
+        : snapshotQuery.isError
+          ? 'FX unavailable'
+          : 'Loading FX';
 
   async function handleSignOut() {
     setSignOutError(null);
@@ -64,7 +104,7 @@ export default function HomeScreen() {
       <CenteredState
         eyebrow="Home"
         title="Preparing your dashboard"
-        description="We are loading subscriptions, next billing details, and estimate cards."
+        description="We are loading subscription totals, next billing details, and dashboard actions."
         isLoading
       />
     );
@@ -95,33 +135,55 @@ export default function HomeScreen() {
           right: safeAreaInsets.right,
           bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
         }}
+        scrollIndicatorInsets={{
+          top: safeAreaInsets.top,
+          bottom: safeAreaInsets.bottom + BottomTabInset,
+        }}
         contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
           <ThemedView type="surfaceElevated" style={styles.heroSection}>
-            <ThemedText type="eyebrow" themeColor="textSecondary">
-              Signed in
-            </ThemedText>
-            <ThemedText type="title" style={styles.title}>
-              Paynesto
-            </ThemedText>
-            <ThemedText style={styles.lead} themeColor="textSecondary">
-              {user?.email
-                ? `${user.email} is connected. You can now manage subscriptions, review Money Plan guidance, and check foreign-currency estimates in one flow.`
-                : 'Your signed-in session is ready.'}
-            </ThemedText>
-            <ThemedText type="bodySm" themeColor="textSecondary">
-              Current data source: {sourceLabel}
-            </ThemedText>
+            <View style={styles.heroCopy}>
+              <ThemedText type="eyebrow" themeColor="textSecondary">
+                This month
+              </ThemedText>
+              <ThemedText type="title">
+                {summary.activeSubscriptionCount > 0
+                  ? formatMoneyAmount(summary.totalMonthlySubscriptionSpend)
+                  : 'Ready to track recurring spend'}
+              </ThemedText>
+              <ThemedText style={styles.lead} themeColor="textSecondary">
+                {summary.activeSubscriptionCount > 0
+                  ? `${user?.email ?? 'Your account'} is tracking ${summary.activeSubscriptionCount} active subscription(s). Home now combines recurring cost, salary context, and FX-sensitive spend in one view.`
+                  : 'Add your first subscription and connect Money Plan to unlock a fuller monthly dashboard.'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.heroMeta}>
+              <ThemedText type="bodySm" themeColor="textSecondary">
+                {subscriptionSourceLabel}
+              </ThemedText>
+              <ThemedText type="bodySm" themeColor="textSecondary">
+                {profileSourceLabel}
+              </ThemedText>
+              <ThemedText type="bodySm" themeColor="textSecondary">
+                {fxSourceLabel}
+              </ThemedText>
+            </View>
+
             <View style={styles.heroActions}>
               <Button onPress={() => router.push('/subscriptions' as Href)}>Open subscriptions</Button>
+              <Button variant="secondary" onPress={() => router.push('/money-plan' as Href)}>
+                Open Money Plan
+              </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
                 loading={isSigningOut}
                 onPress={handleSignOut}
-                style={styles.secondaryButton}>
+                style={styles.ghostButton}>
                 Sign out
               </Button>
             </View>
+
             {signOutError ? (
               <ThemedText type="bodySm" themeColor="danger">
                 {signOutError}
@@ -129,70 +191,152 @@ export default function HomeScreen() {
             ) : null}
           </ThemedView>
 
+          <View style={styles.metricsGrid}>
+            <HomeMetricCard
+              eyebrow="Monthly subscriptions"
+              value={formatMoneyAmount(summary.totalMonthlySubscriptionSpend)}
+              description={
+                summary.usdSubscriptionCount > 0
+                  ? `${formatMoneyAmount(summary.monthlyKrwSubscriptionTotal)} KRW + ${formatMoneyAmount(summary.monthlyUsdEstimateTotal)} FX estimate`
+                  : 'Based on active monthly-equivalent subscriptions'
+              }
+              style={isWideLayout ? styles.halfCard : undefined}
+              tone="accent"
+            />
+            <HomeMetricCard
+              eyebrow="Next billing"
+              value={summary.nextBilling ? summary.nextBilling.serviceName : 'Nothing scheduled'}
+              description={
+                summary.nextBilling
+                  ? `${formatDaysUntilBilling(summary.daysUntilNextBilling)} · ${formatSubscriptionAmount(
+                      summary.nextBilling.amount,
+                      summary.nextBilling.currency
+                    )}`
+                  : 'Add a subscription to start tracking upcoming payments'
+              }
+              style={isWideLayout ? styles.halfCard : undefined}
+            />
+            <HomeMetricCard
+              eyebrow="Salary ratio"
+              value={
+                summary.salaryRatio !== null
+                  ? `${formatMoneyRatio(summary.salaryRatio)} · ${formatHealthStatus(summary.salaryHealthStatus ?? 'healthy')}`
+                  : 'Money Plan needed'
+              }
+              description={
+                profile
+                  ? `Disposable income after fixed costs: ${formatMoneyAmount(summary.disposableIncome ?? 0)}`
+                  : 'Connect take-home pay and fixed costs to unlock budget-aware guidance'
+              }
+              style={isWideLayout ? styles.halfCard : undefined}
+            />
+            <HomeMetricCard
+              eyebrow="USD estimate"
+              value={
+                summary.usdSubscriptionCount > 0
+                  ? formatMoneyAmount(summary.monthlyUsdEstimateTotal)
+                  : 'No USD subscriptions'
+              }
+              description={
+                snapshot
+                  ? `${formatExchangeRate(snapshot.rate)} · ${formatAppDate(snapshot.fetchedAt, 'yyyy.MM.dd HH:mm')}`
+                  : 'FX estimates will appear when a USD/KRW snapshot is available'
+              }
+              style={isWideLayout ? styles.halfCard : undefined}
+            />
+          </View>
+
+          {profile ? (
+            <SectionCard
+              eyebrow="Budget pulse"
+              title={`${formatMoneyAmount(summary.totalMonthlyCommittedCost ?? 0)} committed this month`}
+              description="Fixed costs, KRW subscriptions, and USD estimates combined into one monthly commitment view.">
+              <View style={styles.bulletList}>
+                <ThemedText>
+                  - Fixed costs: {formatMoneyAmount(profile.monthlyFixedCosts)}
+                </ThemedText>
+                <ThemedText>
+                  - Subscription budget status: {formatHealthStatus(summary.salaryHealthStatus ?? 'healthy')}
+                </ThemedText>
+                <ThemedText>
+                  - Recommended subscription band: {summary.budgetReport
+                    ? `${formatMoneyAmount(summary.budgetReport.recommendedSubscriptionBudgetMin)} - ${formatMoneyAmount(summary.budgetReport.recommendedSubscriptionBudgetMax)}`
+                    : 'Unavailable'}
+                </ThemedText>
+              </View>
+            </SectionCard>
+          ) : (
+            <SectionCard
+              eyebrow="Budget pulse"
+              tone="accent"
+              title="Money Plan is not configured yet"
+              description="Add salary and fixed costs to see whether subscriptions are healthy for your real monthly budget.">
+              <Button variant="secondary" onPress={() => router.push('/money-plan' as Href)}>
+                Set up Money Plan
+              </Button>
+            </SectionCard>
+          )}
+
           <SectionCard
-            eyebrow="Subscription summary"
-            title={`${subscriptions.filter((subscription) => subscription.isActive).length} active subscriptions`}
-            description="Core subscription status and upcoming billing overview.">
-            <View style={styles.bulletList}>
-              <ThemedText>
-                - Next billing: {nextBilling ? `${nextBilling.serviceName} · ${formatAppDate(nextBilling.nextBillingDate)}` : 'None'}
-              </ThemedText>
-              <ThemedText>- Trial endings to review: {getTrialEndingCount(subscriptions)}</ThemedText>
-              <ThemedText>
-                - USD subscriptions: {subscriptions.filter((subscription) => subscription.currency === 'USD').length}
-              </ThemedText>
+            eyebrow="What to do next"
+            title="Action-oriented dashboard cards"
+            description="These recommendations respond to your current subscriptions, budget setup, and FX-sensitive plans.">
+            <View style={styles.actionsGrid}>
+              {summary.actions.map((action) => (
+                <HomeActionCard
+                  key={action.id}
+                  action={action}
+                  style={isWideLayout ? styles.actionHalfCard : undefined}
+                />
+              ))}
             </View>
           </SectionCard>
 
           <SectionCard
-            eyebrow="USD estimate"
-            title={
-              usdEstimates.length > 0
-                ? formatEstimatedKrw(totalUsdEstimate)
-                : 'No USD subscriptions yet'
-            }
+            eyebrow="Watch list"
+            title={summary.trialEndingCount > 0 ? `${summary.trialEndingCount} trial ending reminder(s)` : 'Recurring checks are under control'}
             description={
-              snapshotQuery.data?.data
-                ? `${formatExchangeRate(snapshotQuery.data.data.rate)} snapshot applied to ${usdEstimates.length} USD subscription(s).`
-                : 'Connect an FX snapshot to see estimated KRW charges for USD subscriptions.'
+              summary.nextBilling
+                ? `${summary.nextBilling.serviceName} is the next scheduled billing item on ${formatAppDate(summary.nextBilling.nextBillingDate)}.`
+                : 'You will see upcoming billings here after adding subscriptions.'
             }>
-            {snapshotQuery.isError ? (
-              <ThemedText type="bodySm" themeColor="danger">
-                {snapshotQuery.error instanceof Error
-                  ? snapshotQuery.error.message
-                  : 'Could not load the latest FX snapshot.'}
+            <View style={styles.bulletList}>
+              <ThemedText>
+                - Active subscriptions: {summary.activeSubscriptionCount}
               </ThemedText>
-            ) : snapshotQuery.data?.data ? (
-              <ThemedText type="bodySm" themeColor="textSecondary">
-                Snapshot time: {formatAppDate(snapshotQuery.data.data.fetchedAt, 'yyyy.MM.dd HH:mm')}
+              <ThemedText>
+                - USD subscriptions: {summary.usdSubscriptionCount}
               </ThemedText>
-            ) : null}
+              <ThemedText>
+                - Trial endings to review: {summary.trialEndingCount}
+              </ThemedText>
+              {summary.topCancellationCandidate ? (
+                <ThemedText>
+                  - First savings review target: {summary.topCancellationCandidate.serviceName}
+                </ThemedText>
+              ) : null}
+            </View>
           </SectionCard>
 
-          <SectionCard
-            eyebrow="Suggested next work"
-            title="Core flows are live"
-            tone="accent"
-            description="Subscriptions, Google auth, and Money Plan are in place. FX estimates are now layered onto USD subscriptions.">
-            <Button variant="secondary" onPress={() => router.push('/subscriptions' as Href)}>
-              Review subscriptions
-            </Button>
-          </SectionCard>
-
-          <SectionCard
-            eyebrow="Next billing"
-            title={nextBilling ? nextBilling.serviceName : 'No scheduled payment'}
-            description={
-              nextBilling
-                ? `${formatAppDate(nextBilling.nextBillingDate)} · ${nextBilling.currency} ${nextBilling.amount}`
-                : 'Add a subscription to see the next billing card here.'
-            }>
-            <ThemedText type="bodySm" themeColor="textSecondary">
-              {subscriptionsQuery.data?.source === 'preview'
-                ? 'The dashboard is currently using preview subscription data.'
-                : 'The dashboard is currently using Supabase subscription data.'}
-            </ThemedText>
-          </SectionCard>
+          {profileQuery.isError || snapshotQuery.isError ? (
+            <SectionCard
+              eyebrow="Limited sync"
+              title="Some dashboard sources are unavailable"
+              description="Home still works with partial data, but one or more supporting sources could not be refreshed.">
+              <View style={styles.bulletList}>
+                {profileQuery.isError ? (
+                  <ThemedText themeColor="danger">
+                    - Money Plan: {profileQuery.error instanceof Error ? profileQuery.error.message : 'Could not load Money Plan data.'}
+                  </ThemedText>
+                ) : null}
+                {snapshotQuery.isError ? (
+                  <ThemedText themeColor="danger">
+                    - FX snapshot: {snapshotQuery.error instanceof Error ? snapshotQuery.error.message : 'Could not load FX data.'}
+                  </ThemedText>
+                ) : null}
+              </View>
+            </SectionCard>
+          ) : null}
         </View>
       </ScrollView>
     </ThemedView>
@@ -213,29 +357,52 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    gap: 16,
+    gap: Spacing.three,
   },
   heroSection: {
-    gap: 12,
+    gap: Spacing.three,
     borderRadius: Radius.lg,
     paddingHorizontal: 24,
     paddingVertical: 24,
   },
-  title: {
-    maxWidth: 520,
+  heroCopy: {
+    gap: Spacing.two,
   },
   lead: {
-    maxWidth: 560,
+    maxWidth: 620,
+  },
+  heroMeta: {
+    gap: Spacing.one,
   },
   heroActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  secondaryButton: {
-    minWidth: 120,
+  ghostButton: {
+    minWidth: 96,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+  },
+  halfCard: {
+    width: '48%',
+    minWidth: 280,
+    flexGrow: 1,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.three,
+  },
+  actionHalfCard: {
+    width: '48%',
+    minWidth: 280,
+    flexGrow: 1,
   },
   bulletList: {
-    gap: 8,
+    gap: Spacing.two,
   },
 });

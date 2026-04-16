@@ -99,6 +99,12 @@ npm run test
 - KRW subscriptions are included in the first report; foreign-currency subscriptions are counted but excluded until FX estimates are connected.
 - If the `user_financial_profiles` table is not ready in Supabase, the feature falls back to preview mode so the flow stays usable.
 
+## Home Notes
+
+- Home combines subscriptions, Money Plan, and FX estimates into one recurring-cost dashboard.
+- The dashboard still works with partial data and nudges the user toward the next setup step when Money Plan or FX data is missing.
+- Action cards prioritize upcoming bills, savings candidates, trial endings, and setup guidance.
+
 ## FX Notes
 
 - USD subscriptions now prefer a live Supabase Edge Function snapshot before falling back to cached data.
