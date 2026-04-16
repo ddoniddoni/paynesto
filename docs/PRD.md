@@ -1219,6 +1219,12 @@ and predicts KRW charges for USD subscriptions using exchange rates.
 - Use Edge Functions or server proxy for protected external API calls
 - Store timestamp and source metadata with exchange-rate snapshots
 
+## Auth Roadmap
+- MVP auth can start with email/password via Supabase Auth for faster delivery and simpler QA.
+- Google login is a planned next-step enhancement and should be documented before implementation work starts.
+- When Google login is added, prefer Supabase OAuth with Expo redirect/deep-link flow so session restore and route guards can stay consistent.
+- Google login should be introduced without breaking existing auth session persistence, onboarding flow, or user-owned data policies.
+
 ## UX Rules
 - Keep forms short
 - Show money clearly
@@ -1264,6 +1270,8 @@ Requirements:
 - Add unit tests for budget and FX calculation logic
 - Use Supabase for auth and data persistence
 - Use Edge Functions for protected external API integrations
+- Start auth with email/password, but keep the auth module extensible for Google login in a later step.
+- Plan Google login around Supabase OAuth provider setup, Expo redirect handling, and stable session restoration.
 
 Start with:
 1. Project structure

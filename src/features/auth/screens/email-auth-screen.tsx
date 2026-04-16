@@ -23,6 +23,7 @@ import {
 type EmailAuthScreenProps = {
   mode: 'sign-in' | 'sign-up';
   onSubmit: (input: AuthCredentialsInput) => Promise<AuthActionResult>;
+  onGoogleSignIn: () => Promise<AuthActionResult>;
   onAlternateAction: () => void;
 };
 
@@ -32,15 +33,15 @@ const screenCopy = {
     title: '로그인',
     description: '구독 관리와 머니 플랜을 계속 보려면 계정으로 로그인해 주세요.',
     submitLabel: '로그인',
-    alternatePrompt: '계정이 아직 없다면',
+    alternatePrompt: '계정이 아직 없다면,',
     alternateActionLabel: '회원가입',
   },
   'sign-up': {
     eyebrow: 'Paynesto auth',
     title: '회원가입',
-    description: '이메일과 비밀번호로 계정을 만들고 이후 구독/예산 데이터를 연결할 준비를 합니다.',
+    description: '이메일과 비밀번호로 계정을 만들고 이후 구독과 예산 데이터를 연결할 준비를 해요.',
     submitLabel: '회원가입',
-    alternatePrompt: '이미 계정이 있다면',
+    alternatePrompt: '이미 계정이 있다면,',
     alternateActionLabel: '로그인',
   },
 } as const;
@@ -48,6 +49,7 @@ const screenCopy = {
 export function EmailAuthScreen({
   mode,
   onSubmit,
+  onGoogleSignIn,
   onAlternateAction,
 }: EmailAuthScreenProps) {
   const safeAreaInsets = useSafeAreaInsets();
@@ -55,6 +57,7 @@ export function EmailAuthScreen({
   const copy = screenCopy[mode];
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const {
     control,
@@ -90,6 +93,25 @@ export function EmailAuthScreen({
     }
   }
 
+  async function handleGoogleSubmit() {
+    setSubmitError(null);
+    setNoticeMessage(null);
+    setIsGoogleSubmitting(true);
+
+    try {
+      const result = await onGoogleSignIn();
+
+      if (!result.ok) {
+        setSubmitError(result.errorMessage);
+        return;
+      }
+
+      setNoticeMessage(result.noticeMessage ?? null);
+    } finally {
+      setIsGoogleSubmitting(false);
+    }
+  }
+
   const bannerMessage =
     status === 'unconfigured'
       ? AUTH_CONFIG_ERROR_MESSAGE
@@ -122,12 +144,29 @@ export function EmailAuthScreen({
             <SectionCard
               eyebrow="설정 필요"
               tone="accent"
-              title="Supabase 연결 정보가 아직 없습니다"
+              title="Supabase 연결 정보가 아직 없어요"
               description={bannerMessage}
             />
           ) : null}
 
           <ThemedView type="surfaceElevated" style={styles.formCard}>
+            <Button
+              variant="secondary"
+              loading={isGoogleSubmitting}
+              onPress={() => void handleGoogleSubmit()}
+              disabled={status === 'unconfigured' || isSubmitting}
+              style={styles.primaryButton}>
+              Google로 계속하기
+            </Button>
+
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <ThemedText type="bodySm" themeColor="textSecondary">
+                또는 이메일로
+              </ThemedText>
+              <View style={styles.dividerLine} />
+            </View>
+
             <Controller
               control={control}
               name="email"
@@ -142,7 +181,7 @@ export function EmailAuthScreen({
                   placeholder="email@address.com"
                   value={value}
                   errorMessage={errors.email?.message}
-                  editable={status !== 'unconfigured'}
+                  editable={status !== 'unconfigured' && !isGoogleSubmitting}
                 />
               )}
             />
@@ -161,7 +200,7 @@ export function EmailAuthScreen({
                   secureTextEntry
                   value={value}
                   errorMessage={errors.password?.message}
-                  editable={status !== 'unconfigured'}
+                  editable={status !== 'unconfigured' && !isGoogleSubmitting}
                 />
               )}
             />
@@ -181,7 +220,7 @@ export function EmailAuthScreen({
             <Button
               loading={isSubmitting}
               onPress={handleSubmit(handleFormSubmit)}
-              disabled={status === 'unconfigured'}
+              disabled={status === 'unconfigured' || isGoogleSubmitting}
               style={styles.primaryButton}>
               {copy.submitLabel}
             </Button>
@@ -234,6 +273,16 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignSelf: 'stretch',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(102, 118, 138, 0.32)',
   },
   switchRow: {
     flexDirection: 'row',

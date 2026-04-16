@@ -1,11 +1,20 @@
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import type { Session } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 import type { AuthCredentialsInput } from '@/features/auth/schemas/auth-credentials-schema';
+import { getAuthCallbackParams } from '@/features/auth/utils/auth-callback-url';
 import { getAuthErrorMessage } from '@/features/auth/utils/auth-error-message';
 import { assertSupabaseConfigured, getSupabaseClient } from '@/services/supabase';
 
+WebBrowser.maybeCompleteAuthSession();
+
 export const AUTH_CONFIG_ERROR_MESSAGE =
-  'EXPO_PUBLIC_SUPABASE_URL과 EXPO_PUBLIC_SUPABASE_ANON_KEY를 로컬 `.env`에 추가하면 인증을 사용할 수 있어요.';
+  'EXPO_PUBLIC_SUPABASE_URL과 EXPO_PUBLIC_SUPABASE_ANON_KEY를 로컬 `.env`에 추가하면 인증 기능을 사용할 수 있어요.';
+
+export const AUTH_CALLBACK_ERROR_MESSAGE =
+  'Google 로그인 응답을 확인하지 못했어요. 다시 시도해 주세요.';
 
 export type AuthActionResult =
   | {
@@ -36,6 +45,13 @@ function normalizeCredentials(input: AuthCredentialsInput) {
     email: input.email.trim().toLowerCase(),
     password: input.password,
   };
+}
+
+export function getGoogleAuthRedirectUri() {
+  return makeRedirectUri({
+    path: 'auth/callback',
+    scheme: 'subscriptionmobile',
+  });
 }
 
 export async function restoreAuthSession(): Promise<RestoreAuthSessionResult> {
@@ -77,6 +93,107 @@ export function subscribeToAuthStateChange(callback: (session: Session | null) =
   });
 
   return subscription;
+}
+
+export async function completeOAuthSessionFromUrl(url: string): Promise<AuthActionResult> {
+  try {
+    const client = assertSupabaseConfigured();
+    const params = getAuthCallbackParams(url);
+
+    if (params.errorCode) {
+      return {
+        ok: false,
+        errorMessage: params.errorDescription ?? params.errorCode,
+      };
+    }
+
+    if (params.code) {
+      const { error } = await client.auth.exchangeCodeForSession(params.code);
+
+      if (error) {
+        return {
+          ok: false,
+          errorMessage: getAuthErrorMessage(error),
+        };
+      }
+
+      return { ok: true };
+    }
+
+    if (params.accessToken && params.refreshToken) {
+      const { error } = await client.auth.setSession({
+        access_token: params.accessToken,
+        refresh_token: params.refreshToken,
+      });
+
+      if (error) {
+        return {
+          ok: false,
+          errorMessage: getAuthErrorMessage(error),
+        };
+      }
+
+      return { ok: true };
+    }
+
+    return {
+      ok: false,
+      errorMessage: AUTH_CALLBACK_ERROR_MESSAGE,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      errorMessage: getAuthErrorMessage(error),
+    };
+  }
+}
+
+export async function signInWithGoogle(): Promise<AuthActionResult> {
+  try {
+    const client = assertSupabaseConfigured();
+    const redirectTo = getGoogleAuthRedirectUri();
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider: 'google',
+      options: Platform.OS === 'web' ? { redirectTo } : { redirectTo, skipBrowserRedirect: true },
+    });
+
+    if (error) {
+      return {
+        ok: false,
+        errorMessage: getAuthErrorMessage(error),
+      };
+    }
+
+    if (Platform.OS === 'web') {
+      return {
+        ok: true,
+        noticeMessage: 'Google 로그인 페이지로 이동하고 있어요.',
+      };
+    }
+
+    if (!data?.url) {
+      return {
+        ok: false,
+        errorMessage: AUTH_CALLBACK_ERROR_MESSAGE,
+      };
+    }
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+    if (result.type !== 'success' || !result.url) {
+      return {
+        ok: false,
+        errorMessage: 'Google 로그인이 취소되었거나 완료되지 않았어요.',
+      };
+    }
+
+    return completeOAuthSessionFromUrl(result.url);
+  } catch (error) {
+    return {
+      ok: false,
+      errorMessage: getAuthErrorMessage(error),
+    };
+  }
 }
 
 export async function signInWithEmailPassword(

@@ -84,3 +84,10 @@ npm run test
 ```
 
 현재 `npm run test`는 auth schema와 에러 매핑 같은 순수 로직의 최소 검증부터 시작합니다.
+
+## Auth Notes
+
+- Email/password auth is available for MVP.
+- Google login is supported through Supabase OAuth plus Expo redirect handling.
+- Add `subscriptionmobile://auth/callback` to Supabase redirect URLs for native testing.
+- Add a web callback URL such as `http://localhost:8081/auth/callback` when testing Expo web locally.
