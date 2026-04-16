@@ -49,6 +49,7 @@ docs/
 - Expo Router 기반 탭 셸과 기초 UI scaffold가 준비되어 있습니다.
 - 현재 `Home`, `Plans` 화면은 mock 데이터 기반의 초기 스타터 화면입니다.
 - Step 1에서는 핵심 의존성, provider 구조, Supabase/env 경계를 정리합니다.
+- Step 2에서는 제품용 theme token, typography, card/button/input 공용 컴포넌트를 정리합니다.
 
 ## 실행 원칙
 
