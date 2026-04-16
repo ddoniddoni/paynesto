@@ -50,7 +50,7 @@ function normalizeCredentials(input: AuthCredentialsInput) {
 export function getGoogleAuthRedirectUri() {
   return makeRedirectUri({
     path: 'auth/callback',
-    scheme: 'subscriptionmobile',
+    scheme: 'paynesto',
   });
 }
 

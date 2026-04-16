@@ -5,7 +5,7 @@ import { getAuthCallbackParams } from '../../src/features/auth/utils/auth-callba
 describe('getAuthCallbackParams', () => {
   it('reads access and refresh tokens from a hash callback url', () => {
     const result = getAuthCallbackParams(
-      'subscriptionmobile://auth/callback#access_token=token123&refresh_token=refresh456'
+      'paynesto://auth/callback#access_token=token123&refresh_token=refresh456'
     );
 
     expect(result).toEqual({
@@ -31,7 +31,7 @@ describe('getAuthCallbackParams', () => {
 
   it('prefers structured error details when oauth fails', () => {
     const result = getAuthCallbackParams(
-      'subscriptionmobile://auth/callback#error=access_denied&error_description=User%20cancelled'
+      'paynesto://auth/callback#error=access_denied&error_description=User%20cancelled'
     );
 
     expect(result).toEqual({

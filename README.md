@@ -89,5 +89,5 @@ npm run test
 
 - Email/password auth is available for MVP.
 - Google login is supported through Supabase OAuth plus Expo redirect handling.
-- Add `subscriptionmobile://auth/callback` to Supabase redirect URLs for native testing.
+- Add `paynesto://auth/callback` to Supabase redirect URLs for native testing.
 - Add a web callback URL such as `http://localhost:8081/auth/callback` when testing Expo web locally.
