@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import React, { type PropsWithChildren, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
+import { AuthSessionProvider } from '@/features/auth/providers/auth-session-provider';
 import { createAppQueryClient } from '@/lib/query-client';
 
 export function AppProviders({ children }: PropsWithChildren) {
@@ -11,9 +12,11 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        {children}
-      </ThemeProvider>
+      <AuthSessionProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          {children}
+        </ThemeProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>
   );
 }

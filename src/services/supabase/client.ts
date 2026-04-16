@@ -1,8 +1,29 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient, processLock, type SupabaseClient } from '@supabase/supabase-js';
+import 'react-native-url-polyfill/auto';
+import { AppState, Platform } from 'react-native';
 
 import { getRequiredSupabaseClientEnv, hasSupabaseClientEnv } from '@/lib/env';
 
 let supabaseClient: SupabaseClient | null = null;
+let appStateListenerAttached = false;
+
+function attachAuthAutoRefresh(client: SupabaseClient) {
+  if (Platform.OS === 'web' || appStateListenerAttached) {
+    return;
+  }
+
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') {
+      client.auth.startAutoRefresh();
+      return;
+    }
+
+    client.auth.stopAutoRefresh();
+  });
+
+  appStateListenerAttached = true;
+}
 
 export function getSupabaseClient() {
   if (!hasSupabaseClientEnv) {
@@ -14,10 +35,15 @@ export function getSupabaseClient() {
 
     supabaseClient = createClient(env.supabaseUrl, env.supabaseAnonKey, {
       auth: {
+        ...(Platform.OS !== 'web' ? { storage: AsyncStorage } : {}),
         persistSession: true,
         autoRefreshToken: true,
+        detectSessionInUrl: false,
+        lock: processLock,
       },
     });
+
+    attachAuthAutoRefresh(supabaseClient);
   }
 
   return supabaseClient;

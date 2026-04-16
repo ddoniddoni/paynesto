@@ -1,17 +1,17 @@
-import { Redirect, type Href } from 'expo-router';
+import { Redirect, Stack, type Href } from 'expo-router';
 
 import { CenteredState } from '@/components/shared/centered-state';
 import { useAuthSession } from '@/features/auth/hooks/use-auth-session';
 
-export default function IndexRoute() {
+export default function AuthLayout() {
   const { status } = useAuthSession();
 
   if (status === 'loading') {
     return (
       <CenteredState
-        eyebrow="Launch"
-        title="Paynesto를 준비하고 있어요"
-        description="로그인 상태를 확인한 뒤 적절한 화면으로 바로 보내드릴게요."
+        eyebrow="Auth"
+        title="로그인 상태를 준비하고 있어요"
+        description="기존 세션을 확인한 뒤 인증 화면으로 이어갈게요."
         isLoading
       />
     );
@@ -21,5 +21,5 @@ export default function IndexRoute() {
     return <Redirect href={'/(app)' as Href} />;
   }
 
-  return <Redirect href={'/sign-in' as Href} />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

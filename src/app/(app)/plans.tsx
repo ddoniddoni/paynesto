@@ -7,8 +7,8 @@ import { ThemedView } from '@/components/themed-view';
 import { SectionCard } from '@/components/ui/section-card';
 import { TextInputField } from '@/components/ui/text-input-field';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { plans } from '@/mocks/plans';
 import { useTheme } from '@/hooks/use-theme';
+import { plans } from '@/mocks/plans';
 
 export default function PlansScreen() {
   const safeAreaInsets = useSafeAreaInsets();
