@@ -21,8 +21,8 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="plans">
-        <NativeTabs.Trigger.Label>Plans</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="subscriptions">
+        <NativeTabs.Trigger.Label>Subscriptions</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
           src={require('@/assets/images/tabIcons/explore.png')}
           renderingMode="template"

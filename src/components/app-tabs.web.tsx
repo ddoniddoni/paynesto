@@ -1,11 +1,5 @@
-import {
-  Tabs,
-  TabList,
-  TabTrigger,
-  TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
-} from 'expo-router/ui';
+import { type Href } from 'expo-router';
+import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps } from 'expo-router/ui';
 import React from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 
@@ -23,8 +17,8 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>Home</TabButton>
           </TabTrigger>
-          <TabTrigger name="plans" href="/plans" asChild>
-            <TabButton>Plans</TabButton>
+          <TabTrigger name="subscriptions" href={'/subscriptions' as Href} asChild>
+            <TabButton>Subscriptions</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -51,7 +45,7 @@ export function CustomTabList(props: TabListProps) {
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
         <ThemedText type="smallBold" style={styles.brandText}>
-          Subscription Mobile
+          Paynesto
         </ThemedText>
 
         {props.children}
