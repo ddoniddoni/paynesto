@@ -8,6 +8,8 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
+import { getUsdSubscriptionEstimates } from '@/features/exchange-rate/utils/exchange-rate-utils';
 import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
 import {
   getNextUpcomingSubscription,
@@ -21,20 +23,23 @@ export function SubscriptionListScreen() {
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const { data, isPending, isError, refetch, error } = useSubscriptionsQuery();
+  const snapshotQuery = useLatestUsdKrwSnapshotQuery();
   const subscriptions = data?.data ?? [];
   const nextBilling = getNextUpcomingSubscription(subscriptions);
   const trialCount = getTrialEndingCount(subscriptions);
+  const fxEstimates = getUsdSubscriptionEstimates(subscriptions, snapshotQuery.data?.data ?? null);
+  const fxEstimateMap = new Map(fxEstimates.map((estimate) => [estimate.subscriptionId, estimate]));
   const sourceLabel =
     data?.source === 'preview'
-      ? 'Preview mode로 동작 중입니다. Supabase 환경 변수를 연결하면 실제 테이블 CRUD로 전환됩니다.'
-      : 'Supabase와 연결된 구독 목록입니다.';
+      ? 'Running in preview mode. Connect Supabase tables to switch to live subscription storage.'
+      : 'Connected to Supabase subscription data.';
 
   if (isPending) {
     return (
       <CenteredState
         eyebrow="Subscriptions"
-        title="구독 목록을 불러오고 있어요"
-        description="저장된 구독과 다음 결제일을 정리해서 보여드릴게요."
+        title="Loading subscriptions"
+        description="We are preparing your active subscriptions and upcoming payments."
         isLoading
       />
     );
@@ -44,9 +49,9 @@ export function SubscriptionListScreen() {
     return (
       <CenteredState
         eyebrow="Subscriptions"
-        title="구독 목록을 불러오지 못했어요"
-        description={error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.'}
-        actionLabel="다시 시도"
+        title="Could not load subscriptions"
+        description={error instanceof Error ? error.message : 'Please try again in a moment.'}
+        actionLabel="Try again"
         onAction={() => void refetch()}
       />
     );
@@ -56,9 +61,9 @@ export function SubscriptionListScreen() {
     return (
       <CenteredState
         eyebrow="Subscriptions"
-        title="아직 등록한 구독이 없어요"
-        description="첫 구독을 추가하면 다음 결제일과 체험 종료 흐름을 여기서 관리할 수 있어요."
-        actionLabel="구독 추가"
+        title="No subscriptions yet"
+        description="Add your first subscription to start tracking payment dates, trials, and budget impact."
+        actionLabel="Add subscription"
         onAction={() => router.push('/subscriptions/create' as Href)}
       />
     );
@@ -83,33 +88,42 @@ export function SubscriptionListScreen() {
                 Subscription hub
               </ThemedText>
               <ThemedText type="title" style={styles.heroTitle}>
-                구독 관리
+                Subscriptions
               </ThemedText>
               <ThemedText themeColor="textSecondary">{sourceLabel}</ThemedText>
               <Button onPress={() => router.push('/subscriptions/create' as Href)}>
-                구독 추가
+                Add subscription
               </Button>
             </ThemedView>
 
             <View style={styles.summaryGrid}>
               <SectionCard
-                eyebrow="활성 구독"
-                title={`${subscriptions.filter((subscription) => subscription.isActive).length}개`}
-                description="현재 관리 중인 활성 구독 수입니다."
+                eyebrow="Active subscriptions"
+                title={`${subscriptions.filter((subscription) => subscription.isActive).length}`}
+                description="Subscriptions that are currently active and still charging."
               />
               <SectionCard
-                eyebrow="다음 결제"
-                title={nextBilling ? nextBilling.serviceName : '없음'}
+                eyebrow="Next billing"
+                title={nextBilling ? nextBilling.serviceName : 'None'}
                 description={
                   nextBilling
-                    ? `${formatAppDate(nextBilling.nextBillingDate)} 결제 예정`
-                    : '예정된 결제가 없습니다.'
+                    ? `${formatAppDate(nextBilling.nextBillingDate)} billing date`
+                    : 'No upcoming billing date found.'
                 }
               />
               <SectionCard
-                eyebrow="체험 종료"
-                title={`${trialCount}개`}
-                description="무료체험 종료 관리가 필요한 구독 수입니다."
+                eyebrow="Trial ending"
+                title={`${trialCount}`}
+                description="Subscriptions that still need free-trial attention."
+              />
+              <SectionCard
+                eyebrow="FX estimate"
+                title={`${fxEstimates.length} USD subscriptions`}
+                description={
+                  snapshotQuery.data?.data
+                    ? `${snapshotQuery.data.data.sourceLabel} 기준으로 KRW estimates are shown.`
+                    : 'USD subscriptions will show KRW estimates once an FX snapshot is available.'
+                }
               />
             </View>
           </View>
@@ -118,9 +132,8 @@ export function SubscriptionListScreen() {
           <View style={styles.listItem}>
             <SubscriptionListItem
               subscription={item}
-              onPress={() =>
-                router.push(`/subscriptions/${item.id}` as Href)
-              }
+              fxEstimate={fxEstimateMap.get(item.id)}
+              onPress={() => router.push(`/subscriptions/${item.id}` as Href)}
             />
           </View>
         )}

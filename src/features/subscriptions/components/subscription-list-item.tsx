@@ -4,6 +4,10 @@ import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import {
+  formatEstimatedKrw,
+  formatExchangeRate,
+} from '@/features/exchange-rate/utils/exchange-rate-utils';
+import {
   formatMonthlyEquivalent,
   formatSubscriptionAmount,
   getDaysUntilDate,
@@ -11,17 +15,19 @@ import {
   getSubscriptionStatus,
 } from '@/features/subscriptions/utils/subscription-utils';
 import { formatAppDate } from '@/lib/date';
-import type { Subscription } from '@/types/domain';
+import type { Subscription, SubscriptionFxEstimate } from '@/types/domain';
 
 import { SubscriptionStatusBadge } from './subscription-status-badge';
 
 type SubscriptionListItemProps = {
   subscription: Subscription;
+  fxEstimate?: SubscriptionFxEstimate;
   onPress: () => void;
 };
 
 export function SubscriptionListItem({
   subscription,
+  fxEstimate,
   onPress,
 }: SubscriptionListItemProps) {
   const monthlyEquivalent = getMonthlyNormalizedAmount(
@@ -46,13 +52,13 @@ export function SubscriptionListItem({
         <View style={styles.metricsRow}>
           <View style={styles.metric}>
             <ThemedText type="bodySm" themeColor="textSecondary">
-              결제 금액
+              Billing amount
             </ThemedText>
             <ThemedText>{formatSubscriptionAmount(subscription.amount, subscription.currency)}</ThemedText>
           </View>
           <View style={styles.metric}>
             <ThemedText type="bodySm" themeColor="textSecondary">
-              월 환산
+              Monthly equivalent
             </ThemedText>
             <ThemedText>
               {formatMonthlyEquivalent(monthlyEquivalent, subscription.currency)}
@@ -60,9 +66,21 @@ export function SubscriptionListItem({
           </View>
         </View>
 
+        {fxEstimate ? (
+          <View style={styles.fxBox}>
+            <ThemedText type="bodySm" themeColor="textSecondary">
+              Current KRW estimate
+            </ThemedText>
+            <ThemedText>{formatEstimatedKrw(fxEstimate.estimatedKrwAmount)}</ThemedText>
+            <ThemedText type="bodySm" themeColor="textSecondary">
+              {formatExchangeRate(fxEstimate.exchangeRate)}
+            </ThemedText>
+          </View>
+        ) : null}
+
         <View style={styles.footerRow}>
           <ThemedText type="bodySm" themeColor="textSecondary">
-            다음 결제 {formatAppDate(subscription.nextBillingDate)} · D
+            Next billing {formatAppDate(subscription.nextBillingDate)} · D
             {daysUntilBilling >= 0 ? `-${daysUntilBilling}` : `+${Math.abs(daysUntilBilling)}`}
           </ThemedText>
           {subscription.currency === 'USD' ? (
@@ -93,6 +111,9 @@ const styles = StyleSheet.create({
   },
   metric: {
     minWidth: 140,
+    gap: Spacing.one,
+  },
+  fxBox: {
     gap: Spacing.one,
   },
   footerRow: {
