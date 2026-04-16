@@ -1,0 +1,4 @@
+project_id = "paynesto"
+
+[functions.fx-usd-krw]
+verify_jwt = true
