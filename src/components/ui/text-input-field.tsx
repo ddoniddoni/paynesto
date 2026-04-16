@@ -5,6 +5,7 @@ import {
   type TextInputProps,
   type TextInput as RNTextInput,
   View,
+  type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
@@ -16,7 +17,7 @@ type TextInputFieldProps = TextInputProps & {
   label?: string;
   helperText?: string;
   errorMessage?: string;
-  containerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 export const TextInputField = forwardRef<RNTextInput, TextInputFieldProps>(function TextInputField(
