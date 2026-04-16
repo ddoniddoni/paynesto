@@ -13,7 +13,7 @@ export function Card({ tone = 'default', style, children, ...rest }: CardProps) 
 
   return (
     <ThemedView
-      type={tone === 'accent' ? 'surfaceAccent' : 'surface'}
+      type={tone === 'accent' ? 'surfaceAccent' : 'surfaceElevated'}
       style={[
         styles.card,
         {

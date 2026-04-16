@@ -8,6 +8,13 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
+import {
+  createSubscriptionFxEstimate,
+  formatEstimatedKrw,
+  formatExchangeRate,
+  formatVolatilityDirection,
+} from '@/features/exchange-rate/utils/exchange-rate-utils';
 import {
   useDeleteSubscriptionMutation,
   useSubscriptionQuery,
@@ -31,6 +38,7 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
   const safeAreaInsets = useSafeAreaInsets();
   const detailQuery = useSubscriptionQuery(subscriptionId);
   const listQuery = useSubscriptionsQuery();
+  const snapshotQuery = useLatestUsdKrwSnapshotQuery();
   const deleteMutation = useDeleteSubscriptionMutation(subscriptionId);
   const subscription = detailQuery.data?.data;
   const monthlyEquivalent = subscription
@@ -48,23 +56,27 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
           ),
         })
       : 0;
+  const fxEstimate =
+    subscription && snapshotQuery.data?.data
+      ? createSubscriptionFxEstimate(subscription, snapshotQuery.data.data)
+      : null;
 
   function handleDelete() {
     Alert.alert(
-      '구독 삭제',
-      '이 구독을 목록에서 삭제할까요? 다음 결제 추적과 체험 종료 관리에서도 함께 사라집니다.',
+      'Delete subscription',
+      'This removes the subscription from your list and from future billing/trial tracking.',
       [
-        { text: '취소', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: '삭제',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             const result = await deleteMutation.mutateAsync();
             Alert.alert(
-              '삭제 완료',
+              'Deleted',
               result.source === 'preview'
-                ? 'Preview 목록에서 구독을 삭제했어요.'
-                : '구독을 삭제했어요.'
+                ? 'The subscription was removed from preview data.'
+                : 'The subscription was removed.'
             );
             router.replace('/subscriptions' as Href);
           },
@@ -77,8 +89,8 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
     return (
       <CenteredState
         eyebrow="Subscription detail"
-        title="구독 정보를 불러오고 있어요"
-        description="상세 정보와 해지 판단 힌트를 준비하고 있습니다."
+        title="Loading subscription detail"
+        description="We are preparing billing data, status, and recommendation context."
         isLoading
       />
     );
@@ -88,13 +100,13 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
     return (
       <CenteredState
         eyebrow="Subscription detail"
-        title="구독 상세를 불러오지 못했어요"
+        title="Could not load this subscription"
         description={
           detailQuery.error instanceof Error
             ? detailQuery.error.message
-            : '잠시 후 다시 시도해 주세요.'
+            : 'Please try again in a moment.'
         }
-        actionLabel="목록으로"
+        actionLabel="Back to list"
         onAction={() => router.replace('/subscriptions' as Href)}
       />
     );
@@ -104,9 +116,9 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
     return (
       <CenteredState
         eyebrow="Subscription detail"
-        title="구독을 찾을 수 없어요"
-        description="이미 삭제되었거나 접근할 수 없는 항목일 수 있습니다."
-        actionLabel="목록으로"
+        title="Subscription not found"
+        description="It may have been deleted or you may not have access to it."
+        actionLabel="Back to list"
         onAction={() => router.replace('/subscriptions' as Href)}
       />
     );
@@ -143,48 +155,71 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
               <Button
                 variant="secondary"
                 onPress={() => router.push(`/subscriptions/${subscriptionId}/edit` as Href)}>
-                수정
+                Edit
               </Button>
               <Button
                 variant="ghost"
                 loading={deleteMutation.isPending}
                 onPress={handleDelete}
                 style={styles.deleteButton}>
-                삭제
+                Delete
               </Button>
             </View>
             {deleteMutation.isError ? (
               <ThemedText type="bodySm" themeColor="danger">
                 {deleteMutation.error instanceof Error
                   ? deleteMutation.error.message
-                  : '삭제 중 오류가 발생했어요.'}
+                  : 'An error occurred while deleting this subscription.'}
               </ThemedText>
             ) : null}
           </ThemedView>
 
           <SectionCard
-            eyebrow="금액 정보"
+            eyebrow="Billing amount"
             title={formatSubscriptionAmount(subscription.amount, subscription.currency)}
-            description={`${formatMonthlyEquivalent(monthlyEquivalent, subscription.currency)} 기준으로 비교할 수 있어요.`}
+            description={`${formatMonthlyEquivalent(monthlyEquivalent, subscription.currency)} for monthly comparison.`}
           />
 
+          {fxEstimate ? (
+            <SectionCard
+              eyebrow="FX estimate"
+              title={formatEstimatedKrw(fxEstimate.estimatedKrwAmount)}
+              description={`${formatExchangeRate(fxEstimate.exchangeRate)} · ${formatAppDate(fxEstimate.fetchedAt, 'yyyy.MM.dd HH:mm')}`}>
+              <View style={styles.fxList}>
+                <ThemedText>
+                  - Estimate range: {formatEstimatedKrw(fxEstimate.estimateLowKrwAmount)} to{' '}
+                  {formatEstimatedKrw(fxEstimate.estimateHighKrwAmount)}
+                </ThemedText>
+                <ThemedText>
+                  - Monthly normalized KRW: {formatEstimatedKrw(fxEstimate.normalizedMonthlyKrwAmount)}
+                </ThemedText>
+                <ThemedText>
+                  - Volatility: {formatVolatilityDirection(fxEstimate.volatilityDirection, fxEstimate.volatilityDelta)}
+                </ThemedText>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  Source: {fxEstimate.sourceLabel}
+                </ThemedText>
+              </View>
+            </SectionCard>
+          ) : null}
+
           <SectionCard
-            eyebrow="결제 일정"
+            eyebrow="Next billing"
             title={formatAppDate(subscription.nextBillingDate)}
-            description={`다음 결제까지 D-${Math.max(getDaysUntilDate(subscription.nextBillingDate), 0)} 입니다.`}>
+            description={`D-${Math.max(getDaysUntilDate(subscription.nextBillingDate), 0)} until the next billing date.`}>
             {subscription.isTrial && subscription.trialEndDate ? (
               <ThemedText type="bodySm" themeColor="textSecondary">
-                무료체험 종료일: {formatAppDate(subscription.trialEndDate)}
+                Trial ends on {formatAppDate(subscription.trialEndDate)}
               </ThemedText>
             ) : null}
           </SectionCard>
 
           <SectionCard
-            eyebrow="사용 패턴"
-            title={`사용 빈도 ${subscription.usageFrequency}`}
-            description={`해지 후보 점수 ${cancellationScore}점으로 계산됩니다.`}>
+            eyebrow="Usage review"
+            title={`Usage frequency: ${subscription.usageFrequency}`}
+            description={`Cancellation signal score: ${cancellationScore}`}>
             <ThemedText type="bodySm" themeColor="textSecondary">
-              메모: {subscription.note ?? '메모 없음'}
+              Note: {subscription.note ?? 'No note saved'}
             </ThemedText>
           </SectionCard>
         </View>
@@ -234,5 +269,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     minWidth: 0,
+  },
+  fxList: {
+    gap: Spacing.two,
   },
 });

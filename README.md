@@ -98,3 +98,10 @@ npm run test
 - Budget guidance is calculated locally from the saved profile plus active subscriptions.
 - KRW subscriptions are included in the first report; foreign-currency subscriptions are counted but excluded until FX estimates are connected.
 - If the `user_financial_profiles` table is not ready in Supabase, the feature falls back to preview mode so the flow stays usable.
+
+## FX Notes
+
+- USD subscriptions use the latest available USD/KRW snapshot to show estimated KRW charges.
+- Estimates include the applied rate, snapshot time, and a buffered high-end range for card/payment variance.
+- If the `exchange_rate_snapshots` table is not ready in Supabase, the app falls back to a preview snapshot.
+- Secure external FX API fetching is intentionally left behind a later server-side step.

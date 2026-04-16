@@ -96,6 +96,36 @@ export type BudgetReport = {
 
 export type MoneyPlanDataSource = 'supabase' | 'preview';
 
+export type ExchangeRateSnapshot = {
+  id: string;
+  baseCurrency: 'USD';
+  quoteCurrency: 'KRW';
+  rate: number;
+  previousRate?: number;
+  fetchedAt: string;
+  expiresAt?: string;
+  sourceLabel: string;
+};
+
+export type ExchangeRateDataSource = 'supabase' | 'preview';
+
+export type FxVolatilityDirection = 'up' | 'down' | 'stable';
+
+export type SubscriptionFxEstimate = {
+  subscriptionId: string;
+  currency: 'USD';
+  originalAmount: number;
+  exchangeRate: number;
+  estimatedKrwAmount: number;
+  estimateLowKrwAmount: number;
+  estimateHighKrwAmount: number;
+  normalizedMonthlyKrwAmount: number;
+  volatilityDirection: FxVolatilityDirection;
+  volatilityDelta: number;
+  fetchedAt: string;
+  sourceLabel: string;
+};
+
 export type PlanAvailability = 'available' | 'coming_soon';
 
 export type BillingCycle = 'monthly' | 'annual';
