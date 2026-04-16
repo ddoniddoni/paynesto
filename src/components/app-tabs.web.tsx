@@ -20,6 +20,9 @@ export default function AppTabs() {
           <TabTrigger name="subscriptions" href={'/subscriptions' as Href} asChild>
             <TabButton>Subscriptions</TabButton>
           </TabTrigger>
+          <TabTrigger name="money-plan" href={'/money-plan' as Href} asChild>
+            <TabButton>Money Plan</TabButton>
+          </TabTrigger>
         </CustomTabList>
       </TabList>
     </Tabs>

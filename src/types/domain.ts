@@ -58,6 +58,44 @@ export type SubscriptionWriteInput = Omit<
 
 export type SubscriptionDataSource = 'supabase' | 'preview';
 
+export const budgetHealthStatuses = ['healthy', 'caution', 'warning'] as const;
+
+export type BudgetHealthStatus = (typeof budgetHealthStatuses)[number];
+
+export type UserFinancialProfile = {
+  id: string;
+  userId: string;
+  monthlyNetSalary: number;
+  monthlyFixedCosts: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UserFinancialProfileWriteInput = Omit<
+  UserFinancialProfile,
+  'id' | 'userId' | 'createdAt' | 'updatedAt'
+>;
+
+export type BudgetReport = {
+  monthlyNetSalary: number;
+  monthlyFixedCosts: number;
+  monthlySubscriptionTotal: number;
+  monthlyCommittedCosts: number;
+  disposableIncome: number;
+  recommendedSavingsTarget: number;
+  recommendedLivingBudget: number;
+  recommendedSubscriptionBudgetMin: number;
+  recommendedSubscriptionBudgetMax: number;
+  fixedCostRatio: number;
+  subscriptionRatio: number;
+  fixedCostStatus: BudgetHealthStatus;
+  subscriptionStatus: BudgetHealthStatus;
+  foreignCurrencySubscriptionCount: number;
+  guidance: string[];
+};
+
+export type MoneyPlanDataSource = 'supabase' | 'preview';
+
 export type PlanAvailability = 'available' | 'coming_soon';
 
 export type BillingCycle = 'monthly' | 'annual';
