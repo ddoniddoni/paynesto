@@ -91,3 +91,10 @@ npm run test
 - Google login is supported through Supabase OAuth plus Expo redirect handling.
 - Add `paynesto://auth/callback` to Supabase redirect URLs for native testing.
 - Add a web callback URL such as `http://localhost:8081/auth/callback` when testing Expo web locally.
+
+## Money Plan Notes
+
+- Money Plan stores a simple monthly financial profile with net salary and fixed costs.
+- Budget guidance is calculated locally from the saved profile plus active subscriptions.
+- KRW subscriptions are included in the first report; foreign-currency subscriptions are counted but excluded until FX estimates are connected.
+- If the `user_financial_profiles` table is not ready in Supabase, the feature falls back to preview mode so the flow stays usable.
