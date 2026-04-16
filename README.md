@@ -47,10 +47,11 @@ docs/
 ## 현재 상태
 
 - Expo Router 기반 탭 셸과 기초 UI scaffold가 준비되어 있습니다.
-- 현재 `Home`, `Plans` 화면은 mock 데이터 기반의 초기 스타터 화면입니다.
+- 현재 `Home`, `Subscriptions` 화면은 실제 제품 흐름으로 옮겨가는 중이며, 구독 CRUD는 Step 4 기준으로 동작합니다.
 - Step 1에서는 핵심 의존성, provider 구조, Supabase/env 경계를 정리합니다.
 - Step 2에서는 제품용 theme token, typography, card/button/input 공용 컴포넌트를 정리합니다.
 - Step 3에서는 Supabase Auth 기반 로그인 / 회원가입 / 세션 복원 / auth route 분리를 추가합니다.
+- Step 4에서는 `Subscriptions` 탭 기준으로 구독 목록 / 상세 / 생성 / 수정 / 삭제와 repository/query 구조를 추가합니다.
 
 ## 실행 원칙
 
