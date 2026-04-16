@@ -23,11 +23,13 @@ export type ThemedTextProps = TextProps & {
 
 export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
   const theme = useTheme();
+  const resolvedColor =
+    themeColor ? theme[themeColor] : type === 'linkPrimary' ? theme.primary : theme.text;
 
   return (
     <Text
       style={[
-        { color: theme[themeColor ?? 'text'] },
+        { color: resolvedColor },
         variantStyles[type],
         style,
       ]}
@@ -56,7 +58,6 @@ const variantStyles = StyleSheet.create<Record<NonNullable<ThemedTextProps['type
   },
   linkPrimary: {
     ...Typography.bodySm,
-    color: '#0f766e',
     fontWeight: '700',
   },
   code: Typography.code,
