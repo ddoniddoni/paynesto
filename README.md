@@ -101,7 +101,13 @@ npm run test
 
 ## FX Notes
 
-- USD subscriptions use the latest available USD/KRW snapshot to show estimated KRW charges.
+- USD subscriptions now prefer a live Supabase Edge Function snapshot before falling back to cached data.
+- The runtime order is `fx-usd-krw function -> exchange_rate_snapshots table -> preview snapshot`.
 - Estimates include the applied rate, snapshot time, and a buffered high-end range for card/payment variance.
-- If the `exchange_rate_snapshots` table is not ready in Supabase, the app falls back to a preview snapshot.
-- Secure external FX API fetching is intentionally left behind a later server-side step.
+
+## FX Backend Setup
+
+- Run the SQL in `supabase/migrations/20260417041000_create_exchange_rate_snapshots.sql`.
+- Deploy the Edge Function with `supabase functions deploy fx-usd-krw`.
+- The function uses Supabase Edge defaults: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
+- If the function is not deployed yet, the app still falls back to the latest cached snapshot or preview mode.
