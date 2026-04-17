@@ -53,7 +53,7 @@ export function EmailAuthScreen({
   onAlternateAction,
 }: EmailAuthScreenProps) {
   const safeAreaInsets = useSafeAreaInsets();
-  const { status, errorMessage } = useAuthSession();
+  const { status, errorMessage, enterPreviewMode } = useAuthSession();
   const copy = screenCopy[mode];
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
@@ -150,6 +150,13 @@ export function EmailAuthScreen({
           ) : null}
 
           <ThemedView type="surfaceElevated" style={styles.formCard}>
+            <Button
+              variant="ghost"
+              onPress={() => void enterPreviewMode()}
+              style={styles.primaryButton}>
+              Preview로 둘러보기
+            </Button>
+
             <Button
               variant="secondary"
               loading={isGoogleSubmitting}

@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 export const authSessionStatuses = [
   'loading',
   'authenticated',
+  'preview',
   'anonymous',
   'unconfigured',
   'error',
@@ -15,4 +16,6 @@ export type AuthSessionState = {
   session: Session | null;
   user: User | null;
   errorMessage: string | null;
+  enterPreviewMode: () => Promise<void>;
+  exitPreviewMode: () => Promise<void>;
 };

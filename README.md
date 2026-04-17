@@ -105,6 +105,12 @@ npm run test
 - The dashboard still works with partial data and nudges the user toward the next setup step when Money Plan or FX data is missing.
 - Action cards prioritize upcoming bills, savings candidates, trial endings, and setup guidance.
 
+## My Page Notes
+
+- `My Page` now centralizes account actions, notification preferences, premium status, and support/legal information.
+- Notification settings start with a preview-friendly repository and can later connect to native delivery flows.
+- FX volatility alerts are premium-gated in the settings flow so the entitlement boundary is already explicit.
+
 ## FX Notes
 
 - USD subscriptions now prefer a live Supabase Edge Function snapshot before falling back to cached data.

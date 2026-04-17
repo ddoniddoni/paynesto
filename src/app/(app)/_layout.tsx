@@ -18,7 +18,7 @@ export default function AppLayout() {
     );
   }
 
-  if (status !== 'authenticated') {
+  if (status !== 'authenticated' && status !== 'preview') {
     return <Redirect href={'/sign-in' as Href} />;
   }
 

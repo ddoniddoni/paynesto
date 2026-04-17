@@ -1,5 +1,4 @@
 import { useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useAuthSession } from '@/features/auth/hooks/use-auth-session';
-import { signOut } from '@/features/auth/services/auth-service';
 import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
 import { formatExchangeRate } from '@/features/exchange-rate/utils/exchange-rate-utils';
 import { HomeActionCard } from '@/features/home/components/home-action-card';
@@ -50,8 +48,6 @@ export default function HomeScreen() {
   const subscriptionsQuery = useSubscriptionsQuery();
   const profileQuery = useFinancialProfileQuery();
   const snapshotQuery = useLatestUsdKrwSnapshotQuery();
-  const [signOutError, setSignOutError] = useState<string | null>(null);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const isWideLayout = width >= 720;
   const subscriptions = subscriptionsQuery.data?.data ?? [];
@@ -85,19 +81,6 @@ export default function HomeScreen() {
         : snapshotQuery.isError
           ? 'FX unavailable'
           : 'Loading FX';
-
-  async function handleSignOut() {
-    setSignOutError(null);
-    setIsSigningOut(true);
-
-    const result = await signOut();
-
-    if (!result.ok) {
-      setSignOutError(result.errorMessage);
-    }
-
-    setIsSigningOut(false);
-  }
 
   if (subscriptionsQuery.isPending) {
     return (
@@ -177,18 +160,11 @@ export default function HomeScreen() {
               </Button>
               <Button
                 variant="ghost"
-                loading={isSigningOut}
-                onPress={handleSignOut}
+                onPress={() => router.push('/my-page' as Href)}
                 style={styles.ghostButton}>
-                Sign out
+                Open My Page
               </Button>
             </View>
-
-            {signOutError ? (
-              <ThemedText type="bodySm" themeColor="danger">
-                {signOutError}
-              </ThemedText>
-            ) : null}
           </ThemedView>
 
           <View style={styles.metricsGrid}>

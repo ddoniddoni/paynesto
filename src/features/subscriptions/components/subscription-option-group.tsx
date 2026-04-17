@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type SubscriptionOptionGroupProps<TOption extends string> = {
+type SubscriptionOptionGroupProps<TOption extends string | number> = {
   label: string;
   helperText?: string;
   value: TOption;
@@ -13,7 +13,7 @@ type SubscriptionOptionGroupProps<TOption extends string> = {
   onChange: (value: TOption) => void;
 };
 
-export function SubscriptionOptionGroup<TOption extends string>({
+export function SubscriptionOptionGroup<TOption extends string | number>({
   label,
   helperText,
   value,

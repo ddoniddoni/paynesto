@@ -126,17 +126,64 @@ export type SubscriptionFxEstimate = {
   sourceLabel: string;
 };
 
+export const notificationLeadDays = [1, 3, 7] as const;
+
+export type NotificationLeadDays = (typeof notificationLeadDays)[number];
+
+export type NotificationSettings = {
+  id: string;
+  userId: string;
+  billingRemindersEnabled: boolean;
+  trialEndingRemindersEnabled: boolean;
+  fxVolatilityAlertsEnabled: boolean;
+  marketingUpdatesEnabled: boolean;
+  reminderLeadDays: NotificationLeadDays;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NotificationSettingsWriteInput = Omit<
+  NotificationSettings,
+  'id' | 'userId' | 'createdAt' | 'updatedAt'
+>;
+
+export type NotificationSettingsDataSource = 'supabase' | 'preview';
+
+export const premiumTransactionStatuses = ['active', 'expired', 'canceled'] as const;
+
+export type PremiumTransactionStatus = (typeof premiumTransactionStatuses)[number];
+
+export const premiumBillingCycles = ['monthly', 'yearly'] as const;
+
+export type PremiumBillingCycle = (typeof premiumBillingCycles)[number];
+
+export type PremiumTransaction = {
+  id: string;
+  userId: string;
+  planId: string;
+  status: PremiumTransactionStatus;
+  billingCycle: PremiumBillingCycle;
+  priceUsd: number;
+  purchasedAt: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PremiumCheckoutInput = Pick<PremiumTransaction, 'planId' | 'billingCycle' | 'priceUsd'>;
+
+export type PremiumDataSource = 'supabase' | 'preview';
+
 export type PlanAvailability = 'available' | 'coming_soon';
 
-export type BillingCycle = 'monthly' | 'annual';
-
-export type Plan = {
+export type PremiumPlan = {
   id: string;
   name: string;
   priceLabel: string;
-  billingCycle: BillingCycle;
+  billingCycle: PremiumBillingCycle;
   description: string;
-  seatLabel: string;
+  badge?: string;
   availability: PlanAvailability;
   features: string[];
+  priceUsd: number;
 };
