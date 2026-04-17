@@ -8,7 +8,10 @@
     "scheme": "paynesto",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Paynesto uses notifications to remind you before subscription billing dates and trial endings."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +28,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "paynesto-reminders"
+        }
+      ],
       [
         "expo-splash-screen",
         {

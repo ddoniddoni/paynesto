@@ -13,6 +13,11 @@ import {
   createNotificationSchedulePreview,
   formatNotificationScheduleKind,
 } from '@/features/notifications/utils/notification-schedule-utils';
+import {
+  useNotificationDeliverySnapshotQuery,
+  useRequestNotificationPermissionMutation,
+  useSyncNotificationScheduleMutation,
+} from '@/features/notifications/hooks/use-notification-delivery';
 import { usePremiumTransactionsQuery } from '@/features/premium/hooks/use-premium';
 import { canUseFxAlertNotifications } from '@/features/premium/utils/premium-utils';
 import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
@@ -38,9 +43,14 @@ export function NotificationSettingsScreen() {
   const premiumTransactionsQuery = usePremiumTransactionsQuery();
   const subscriptionsQuery = useSubscriptionsQuery();
   const upsertSettingsMutation = useUpsertNotificationSettingsMutation();
+  const deliveryQuery = useNotificationDeliverySnapshotQuery();
+  const requestPermissionMutation = useRequestNotificationPermissionMutation();
+  const syncScheduleMutation = useSyncNotificationScheduleMutation();
   const [draft, setDraft] = useState<NotificationSettingsWriteInput | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deliveryMessage, setDeliveryMessage] = useState<string | null>(null);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const subscriptions = useMemo(
     () => subscriptionsQuery.data?.data ?? [],
     [subscriptionsQuery.data?.data]
@@ -123,6 +133,8 @@ export function NotificationSettingsScreen() {
   }
 
   const isPremium = canUseFxAlertNotifications(premiumTransactions);
+  const capability = deliveryQuery.data?.capability ?? null;
+  const scheduledNotifications = deliveryQuery.data?.scheduledNotifications ?? [];
 
   function updateDraft<K extends keyof NotificationSettingsWriteInput>(
     key: K,
@@ -150,6 +162,67 @@ export function NotificationSettingsScreen() {
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Could not save notification settings.'
+      );
+    }
+  }
+
+  async function handleEnableNotifications() {
+    setDeliveryError(null);
+    setDeliveryMessage(null);
+
+    try {
+      const result = await requestPermissionMutation.mutateAsync();
+
+      setDeliveryMessage(
+        result.capability.permissionStatus === 'granted'
+          ? 'Notifications are enabled for this device.'
+          : result.capability.permissionStatus === 'denied'
+            ? 'Notifications were denied. You can re-enable them from system settings.'
+            : 'Notification permission was not granted yet.'
+      );
+    } catch (error) {
+      setDeliveryError(
+        error instanceof Error ? error.message : 'Could not update notification permission.'
+      );
+    }
+  }
+
+  async function handleSyncSchedule() {
+    if (!draft) {
+      return;
+    }
+
+    setSubmitError(null);
+    setSubmitMessage(null);
+    setDeliveryError(null);
+    setDeliveryMessage(null);
+
+    try {
+      const nextSettings = createNotificationSettingsWriteInput({
+        ...draft,
+        fxVolatilityAlertsEnabled: isPremium ? draft.fxVolatilityAlertsEnabled : false,
+      });
+
+      await upsertSettingsMutation.mutateAsync(nextSettings);
+      setSubmitMessage('Notification preferences were saved.');
+
+      const result = await syncScheduleMutation.mutateAsync(schedulePreview);
+
+      if (result.status === 'success') {
+        const skippedCopy =
+          result.skippedCount > 0
+            ? ` ${result.skippedCount} old or extra item(s) were skipped.`
+            : '';
+        setDeliveryMessage(
+          `${result.scheduledCount} reminder(s) synced to this device.${skippedCopy}`
+        );
+        return;
+      }
+
+      setDeliveryMessage(result.message);
+    } catch (error) {
+      setDeliveryError(
+        error instanceof Error ? error.message : 'Could not sync reminders to this device.'
       );
     }
   }
@@ -226,9 +299,54 @@ export function NotificationSettingsScreen() {
 
           <SectionCard
             eyebrow="Delivery note"
-            title="Preference management is ready"
-            description="This step stores account preferences first. Native push scheduling and device permission prompts can be connected in a later step."
-          />
+            title={capability ? capability.environmentLabel : 'Preparing device delivery'}
+            description={
+              capability
+                ? capability.detail
+                : 'We are checking whether local reminder delivery is available in this runtime.'
+            }>
+            {deliveryQuery.isPending ? (
+              <ThemedText themeColor="textSecondary">
+                Checking notification permissions and scheduled reminders...
+              </ThemedText>
+            ) : deliveryQuery.isError ? (
+              <View style={styles.previewList}>
+                <ThemedText themeColor="danger">
+                  {deliveryQuery.error instanceof Error
+                    ? deliveryQuery.error.message
+                    : 'Could not inspect device notification state.'}
+                </ThemedText>
+                <Button variant="secondary" onPress={() => void deliveryQuery.refetch()}>
+                  Retry delivery check
+                </Button>
+              </View>
+            ) : capability ? (
+              <View style={styles.previewList}>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  Permission: {capability.permissionStatus}
+                </ThemedText>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  Scheduled on device: {scheduledNotifications.length}
+                </ThemedText>
+                <View style={styles.actionsRow}>
+                  {capability.canRequestPermission ? (
+                    <Button
+                      variant="secondary"
+                      loading={requestPermissionMutation.isPending}
+                      onPress={() => void handleEnableNotifications()}>
+                      Enable notifications
+                    </Button>
+                  ) : null}
+                  <Button
+                    loading={syncScheduleMutation.isPending || upsertSettingsMutation.isPending}
+                    disabled={!capability.isSupported || capability.permissionStatus !== 'granted'}
+                    onPress={() => void handleSyncSchedule()}>
+                    Save and sync reminders
+                  </Button>
+                </View>
+              </View>
+            ) : null}
+          </SectionCard>
 
           <SectionCard
             eyebrow="Schedule preview"
@@ -273,6 +391,55 @@ export function NotificationSettingsScreen() {
             )}
           </SectionCard>
 
+          <SectionCard
+            eyebrow="Scheduled on device"
+            title={
+              scheduledNotifications.length > 0
+                ? `${scheduledNotifications.length} device reminder(s)`
+                : 'No synced device reminders'
+            }
+            description={
+              capability?.permissionStatus === 'granted'
+                ? 'These are the reminders currently scheduled through Expo local notifications.'
+                : 'Grant permission and sync reminders to create on-device notification requests.'
+            }>
+            {deliveryQuery.isPending ? (
+              <ThemedText themeColor="textSecondary">
+                Loading scheduled reminder requests...
+              </ThemedText>
+            ) : deliveryQuery.isError ? (
+              <ThemedText themeColor="danger">
+                {deliveryQuery.error instanceof Error
+                  ? deliveryQuery.error.message
+                  : 'Could not load scheduled reminders.'}
+              </ThemedText>
+            ) : scheduledNotifications.length > 0 ? (
+              <View style={styles.previewList}>
+                {scheduledNotifications.slice(0, 5).map((item) => (
+                  <View key={item.identifier} style={styles.previewItem}>
+                    <ThemedText type="smallBold">{item.title}</ThemedText>
+                    <ThemedText type="bodySm" themeColor="textSecondary">
+                      {formatNotificationScheduleKind(item.kind)} on{' '}
+                      {formatAppDate(item.scheduledFor, 'yyyy.MM.dd')}
+                    </ThemedText>
+                    <ThemedText type="bodySm" themeColor="textSecondary">
+                      {item.description}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.previewList}>
+                <ThemedText themeColor="textSecondary">
+                  - Save and sync reminders after enabling notifications to schedule billing and trial alerts.
+                </ThemedText>
+                <ThemedText themeColor="textSecondary">
+                  - Paynesto currently keeps a small upcoming reminder set on device so the schedule stays easy to review.
+                </ThemedText>
+              </View>
+            )}
+          </SectionCard>
+
           {submitError ? (
             <ThemedText type="bodySm" themeColor="danger">
               {submitError}
@@ -285,8 +452,22 @@ export function NotificationSettingsScreen() {
             </ThemedText>
           ) : null}
 
+          {deliveryError ? (
+            <ThemedText type="bodySm" themeColor="danger">
+              {deliveryError}
+            </ThemedText>
+          ) : null}
+
+          {deliveryMessage ? (
+            <ThemedText type="bodySm" themeColor="success">
+              {deliveryMessage}
+            </ThemedText>
+          ) : null}
+
           <View style={styles.actionsRow}>
-            <Button loading={upsertSettingsMutation.isPending} onPress={() => void handleSave()}>
+            <Button
+              loading={upsertSettingsMutation.isPending && !syncScheduleMutation.isPending}
+              onPress={() => void handleSave()}>
               Save settings
             </Button>
             <Button variant="secondary" onPress={() => router.back()}>
