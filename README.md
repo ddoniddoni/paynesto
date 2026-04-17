@@ -119,6 +119,7 @@ npm run test
 
 ## FX Backend Setup
 
+- Run the SQL in `supabase/migrations/20260417143000_create_core_app_tables.sql` before testing authenticated app flows.
 - Run the SQL in `supabase/migrations/20260417041000_create_exchange_rate_snapshots.sql`.
 - Deploy the Edge Function with `supabase functions deploy fx-usd-krw`.
 - The function uses Supabase Edge defaults: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
