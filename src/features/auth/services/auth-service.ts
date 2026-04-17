@@ -1,6 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import type { AuthCredentialsInput } from '@/features/auth/schemas/auth-credentials-schema';
@@ -9,6 +10,8 @@ import { getAuthErrorMessage } from '@/features/auth/utils/auth-error-message';
 import { assertSupabaseConfigured, getSupabaseClient } from '@/services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const PREVIEW_MODE_STORAGE_KEY = 'paynesto.preview-mode';
 
 export const AUTH_CONFIG_ERROR_MESSAGE =
   'EXPO_PUBLIC_SUPABASE_URL과 EXPO_PUBLIC_SUPABASE_ANON_KEY를 로컬 `.env`에 추가하면 인증 기능을 사용할 수 있어요.';
@@ -45,6 +48,37 @@ function normalizeCredentials(input: AuthCredentialsInput) {
     email: input.email.trim().toLowerCase(),
     password: input.password,
   };
+}
+
+export function getPreviewUser(): User {
+  return {
+    id: 'preview-user',
+    app_metadata: {
+      provider: 'preview',
+      providers: ['preview'],
+    },
+    user_metadata: {
+      display_name: 'Preview User',
+    },
+    aud: 'authenticated',
+    created_at: '2026-04-17T00:00:00.000Z',
+    email: 'preview@paynesto.app',
+    role: 'authenticated',
+  } as User;
+}
+
+export async function isPreviewModeEnabled() {
+  const value = await AsyncStorage.getItem(PREVIEW_MODE_STORAGE_KEY);
+
+  return value === 'true';
+}
+
+export async function enablePreviewMode() {
+  await AsyncStorage.setItem(PREVIEW_MODE_STORAGE_KEY, 'true');
+}
+
+export async function disablePreviewMode() {
+  await AsyncStorage.removeItem(PREVIEW_MODE_STORAGE_KEY);
 }
 
 export function getGoogleAuthRedirectUri() {

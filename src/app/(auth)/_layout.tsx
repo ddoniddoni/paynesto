@@ -17,7 +17,7 @@ export default function AuthLayout() {
     );
   }
 
-  if (status === 'authenticated') {
+  if (status === 'authenticated' || status === 'preview') {
     return <Redirect href={'/(app)' as Href} />;
   }
 
