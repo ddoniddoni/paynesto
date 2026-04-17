@@ -111,6 +111,11 @@ npm run test
 - Notification settings start with a preview-friendly repository and can later connect to native delivery flows.
 - FX volatility alerts are premium-gated in the settings flow so the entitlement boundary is already explicit.
 
+## Notification Notes
+
+- Notification settings now derive upcoming billing, trial-ending, and premium FX watch reminder candidates from current subscriptions.
+- The app previews what would be scheduled next before native push delivery is connected.
+
 ## FX Notes
 
 - USD subscriptions now prefer a live Supabase Edge Function snapshot before falling back to cached data.
