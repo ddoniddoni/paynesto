@@ -1,5 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,10 +9,16 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import {
+  createNotificationSchedulePreview,
+  formatNotificationScheduleKind,
+} from '@/features/notifications/utils/notification-schedule-utils';
 import { usePremiumTransactionsQuery } from '@/features/premium/hooks/use-premium';
 import { canUseFxAlertNotifications } from '@/features/premium/utils/premium-utils';
+import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
 import { SubscriptionOptionGroup } from '@/features/subscriptions/components/subscription-option-group';
 import type { NotificationLeadDays, NotificationSettingsWriteInput } from '@/types/domain';
+import { formatAppDate } from '@/lib/date';
 
 import { useNotificationSettingsQuery, useUpsertNotificationSettingsMutation } from '../hooks/use-notification-settings';
 import { SettingToggleCard } from '../components/setting-toggle-card';
@@ -21,6 +27,7 @@ import {
   getFxAlertGateCopy,
   reminderLeadDayLabels,
 } from '../utils/notification-settings-utils';
+import { PREVIEW_USER_ID } from '@/features/auth/utils/preview-user';
 
 const reminderLeadDayOptions: readonly NotificationLeadDays[] = [1, 3, 7];
 
@@ -29,10 +36,19 @@ export function NotificationSettingsScreen() {
   const router = useRouter();
   const settingsQuery = useNotificationSettingsQuery();
   const premiumTransactionsQuery = usePremiumTransactionsQuery();
+  const subscriptionsQuery = useSubscriptionsQuery();
   const upsertSettingsMutation = useUpsertNotificationSettingsMutation();
   const [draft, setDraft] = useState<NotificationSettingsWriteInput | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const subscriptions = useMemo(
+    () => subscriptionsQuery.data?.data ?? [],
+    [subscriptionsQuery.data?.data]
+  );
+  const premiumTransactions = useMemo(
+    () => premiumTransactionsQuery.data?.data ?? [],
+    [premiumTransactionsQuery.data?.data]
+  );
 
   useEffect(() => {
     if (!settingsQuery.data?.data) {
@@ -50,23 +66,43 @@ export function NotificationSettingsScreen() {
     );
   }, [settingsQuery.data?.data]);
 
-  if (settingsQuery.isPending || premiumTransactionsQuery.isPending || !draft) {
+  const schedulePreview = useMemo(() => {
+    if (!draft) {
+      return [];
+    }
+
+    return createNotificationSchedulePreview({
+      settings: {
+        id: 'preview-settings',
+        userId: PREVIEW_USER_ID,
+        ...draft,
+        createdAt: '',
+        updatedAt: '',
+      },
+      subscriptions,
+      premiumTransactions,
+    });
+  }, [draft, premiumTransactions, subscriptions]);
+
+  if (settingsQuery.isPending || premiumTransactionsQuery.isPending || subscriptionsQuery.isPending || !draft) {
     return (
       <CenteredState
         eyebrow="Notifications"
         title="Loading reminder preferences"
-        description="We are preparing your notification settings and premium access state."
+        description="We are preparing your notification settings, subscriptions, and premium access state."
         isLoading
       />
     );
   }
 
-  if (settingsQuery.isError || premiumTransactionsQuery.isError) {
+  if (settingsQuery.isError || premiumTransactionsQuery.isError || subscriptionsQuery.isError) {
     const message =
       settingsQuery.error instanceof Error
         ? settingsQuery.error.message
         : premiumTransactionsQuery.error instanceof Error
           ? premiumTransactionsQuery.error.message
+          : subscriptionsQuery.error instanceof Error
+            ? subscriptionsQuery.error.message
           : 'Please try again in a moment.';
 
     return (
@@ -76,13 +112,16 @@ export function NotificationSettingsScreen() {
         description={message}
         actionLabel="Try again"
         onAction={() => {
-          void Promise.all([settingsQuery.refetch(), premiumTransactionsQuery.refetch()]);
+          void Promise.all([
+            settingsQuery.refetch(),
+            premiumTransactionsQuery.refetch(),
+            subscriptionsQuery.refetch(),
+          ]);
         }}
       />
     );
   }
 
-  const premiumTransactions = premiumTransactionsQuery.data.data;
   const isPremium = canUseFxAlertNotifications(premiumTransactions);
 
   function updateDraft<K extends keyof NotificationSettingsWriteInput>(
@@ -191,6 +230,49 @@ export function NotificationSettingsScreen() {
             description="This step stores account preferences first. Native push scheduling and device permission prompts can be connected in a later step."
           />
 
+          <SectionCard
+            eyebrow="Schedule preview"
+            title={
+              schedulePreview.length > 0
+                ? `${schedulePreview.length} reminder candidate(s)`
+                : 'No upcoming reminder candidates'
+            }
+            description={
+              schedulePreview.length > 0
+                ? 'This preview shows what Paynesto would schedule next from your current settings and subscriptions.'
+                : subscriptions.length > 0
+                  ? 'Your current settings do not produce any future reminder windows yet.'
+                  : 'Add subscriptions first to generate billing and trial reminder candidates.'
+            }>
+            {schedulePreview.length > 0 ? (
+              <View style={styles.previewList}>
+                {schedulePreview.slice(0, 5).map((item) => (
+                  <View key={item.id} style={styles.previewItem}>
+                    <ThemedText type="smallBold">{item.title}</ThemedText>
+                    <ThemedText type="bodySm" themeColor="textSecondary">
+                      {formatNotificationScheduleKind(item.kind)} · {formatAppDate(item.scheduledFor, 'yyyy.MM.dd')}
+                    </ThemedText>
+                    <ThemedText type="bodySm" themeColor="textSecondary">
+                      {item.description}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.previewList}>
+                <ThemedText themeColor="textSecondary">
+                  - Billing reminders need an active subscription with enough lead time before the next billing date.
+                </ThemedText>
+                <ThemedText themeColor="textSecondary">
+                  - Trial reminders need an active trial subscription with a trial end date.
+                </ThemedText>
+                <ThemedText themeColor="textSecondary">
+                  - FX watch reminders only appear for premium users with active USD subscriptions.
+                </ThemedText>
+              </View>
+            )}
+          </SectionCard>
+
           {submitError ? (
             <ThemedText type="bodySm" themeColor="danger">
               {submitError}
@@ -243,5 +325,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
+  },
+  previewList: {
+    gap: Spacing.two,
+  },
+  previewItem: {
+    gap: Spacing.one,
   },
 });

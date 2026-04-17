@@ -24,7 +24,7 @@ export function useFinancialProfileQuery() {
 
   return useQuery({
     queryKey: moneyPlanKeys.profile(userId),
-    queryFn: () => getMoneyPlanRepository().getProfile(userId),
+    queryFn: () => getMoneyPlanRepository(userId).getProfile(userId),
   });
 }
 
@@ -34,7 +34,7 @@ export function useUpsertFinancialProfileMutation() {
 
   return useMutation({
     mutationFn: (input: UserFinancialProfileWriteInput) =>
-      getMoneyPlanRepository().upsertProfile(userId, input),
+      getMoneyPlanRepository(userId).upsertProfile(userId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: moneyPlanKeys.profile(userId) });
     },

@@ -1,4 +1,4 @@
-import { hasSupabaseClientEnv } from '@/lib/env';
+import { shouldUsePreviewRepository } from '@/lib/repository-mode';
 import type {
   PremiumCheckoutInput,
   PremiumDataSource,
@@ -21,6 +21,8 @@ export type PremiumRepository = {
   ) => Promise<PremiumRepositoryResult<PremiumTransaction>>;
 };
 
-export function getPremiumRepository(): PremiumRepository {
-  return hasSupabaseClientEnv ? supabasePremiumRepository : previewPremiumRepository;
+export function getPremiumRepository(userId?: string | null): PremiumRepository {
+  return shouldUsePreviewRepository(userId)
+    ? previewPremiumRepository
+    : supabasePremiumRepository;
 }

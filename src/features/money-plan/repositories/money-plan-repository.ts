@@ -1,4 +1,4 @@
-import { hasSupabaseClientEnv } from '@/lib/env';
+import { shouldUsePreviewRepository } from '@/lib/repository-mode';
 import type {
   MoneyPlanDataSource,
   UserFinancialProfile,
@@ -21,6 +21,8 @@ export type MoneyPlanRepository = {
   ) => Promise<RepositoryResult<UserFinancialProfile>>;
 };
 
-export function getMoneyPlanRepository(): MoneyPlanRepository {
-  return hasSupabaseClientEnv ? supabaseMoneyPlanRepository : previewMoneyPlanRepository;
+export function getMoneyPlanRepository(userId?: string | null): MoneyPlanRepository {
+  return shouldUsePreviewRepository(userId)
+    ? previewMoneyPlanRepository
+    : supabaseMoneyPlanRepository;
 }

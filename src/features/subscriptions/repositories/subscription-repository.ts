@@ -1,4 +1,4 @@
-import { hasSupabaseClientEnv } from '@/lib/env';
+import { shouldUsePreviewRepository } from '@/lib/repository-mode';
 import type {
   Subscription,
   SubscriptionDataSource,
@@ -28,6 +28,8 @@ export type SubscriptionRepository = {
   remove: (userId: string, subscriptionId: string) => Promise<RepositoryResult<null>>;
 };
 
-export function getSubscriptionRepository(): SubscriptionRepository {
-  return hasSupabaseClientEnv ? supabaseSubscriptionRepository : previewSubscriptionRepository;
+export function getSubscriptionRepository(userId?: string | null): SubscriptionRepository {
+  return shouldUsePreviewRepository(userId)
+    ? previewSubscriptionRepository
+    : supabaseSubscriptionRepository;
 }

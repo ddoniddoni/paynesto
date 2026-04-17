@@ -26,7 +26,7 @@ export function useSubscriptionsQuery() {
 
   return useQuery({
     queryKey: subscriptionKeys.list(userId),
-    queryFn: () => getSubscriptionRepository().list(userId),
+    queryFn: () => getSubscriptionRepository(userId).list(userId),
   });
 }
 
@@ -36,7 +36,7 @@ export function useSubscriptionQuery(subscriptionId: string) {
   return useQuery({
     enabled: Boolean(subscriptionId),
     queryKey: subscriptionKeys.detail(userId, subscriptionId),
-    queryFn: () => getSubscriptionRepository().getById(userId, subscriptionId),
+    queryFn: () => getSubscriptionRepository(userId).getById(userId, subscriptionId),
   });
 }
 
@@ -45,7 +45,8 @@ export function useCreateSubscriptionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: SubscriptionWriteInput) => getSubscriptionRepository().create(userId, input),
+    mutationFn: (input: SubscriptionWriteInput) =>
+      getSubscriptionRepository(userId).create(userId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: subscriptionKeys.list(userId) });
     },
@@ -58,7 +59,7 @@ export function useUpdateSubscriptionMutation(subscriptionId: string) {
 
   return useMutation({
     mutationFn: (input: SubscriptionWriteInput) =>
-      getSubscriptionRepository().update(userId, subscriptionId, input),
+      getSubscriptionRepository(userId).update(userId, subscriptionId, input),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.list(userId) }),
@@ -73,7 +74,7 @@ export function useDeleteSubscriptionMutation(subscriptionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => getSubscriptionRepository().remove(userId, subscriptionId),
+    mutationFn: () => getSubscriptionRepository(userId).remove(userId, subscriptionId),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),

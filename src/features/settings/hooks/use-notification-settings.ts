@@ -24,7 +24,7 @@ export function useNotificationSettingsQuery() {
 
   return useQuery({
     queryKey: notificationSettingsKeys.detail(userId),
-    queryFn: () => getNotificationSettingsRepository().getSettings(userId),
+    queryFn: () => getNotificationSettingsRepository(userId).getSettings(userId),
   });
 }
 
@@ -34,7 +34,7 @@ export function useUpsertNotificationSettingsMutation() {
 
   return useMutation({
     mutationFn: (input: NotificationSettingsWriteInput) =>
-      getNotificationSettingsRepository().upsertSettings(userId, input),
+      getNotificationSettingsRepository(userId).upsertSettings(userId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: notificationSettingsKeys.detail(userId) });
     },

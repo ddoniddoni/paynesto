@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 import type { AuthCredentialsInput } from '@/features/auth/schemas/auth-credentials-schema';
 import { getAuthCallbackParams } from '@/features/auth/utils/auth-callback-url';
 import { getAuthErrorMessage } from '@/features/auth/utils/auth-error-message';
+import { PREVIEW_USER_ID } from '@/features/auth/utils/preview-user';
 import { assertSupabaseConfigured, getSupabaseClient } from '@/services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -52,7 +53,7 @@ function normalizeCredentials(input: AuthCredentialsInput) {
 
 export function getPreviewUser(): User {
   return {
-    id: 'preview-user',
+    id: PREVIEW_USER_ID,
     app_metadata: {
       provider: 'preview',
       providers: ['preview'],

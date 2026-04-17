@@ -149,6 +149,26 @@ export type NotificationSettingsWriteInput = Omit<
 
 export type NotificationSettingsDataSource = 'supabase' | 'preview';
 
+export const notificationScheduleKinds = [
+  'billing_reminder',
+  'trial_ending_reminder',
+  'fx_billing_watch',
+] as const;
+
+export type NotificationScheduleKind = (typeof notificationScheduleKinds)[number];
+
+export type NotificationScheduleItem = {
+  id: string;
+  kind: NotificationScheduleKind;
+  subscriptionId?: string;
+  serviceName?: string;
+  title: string;
+  description: string;
+  scheduledFor: string;
+  sourceDate: string;
+  requiresPremium: boolean;
+};
+
 export const premiumTransactionStatuses = ['active', 'expired', 'canceled'] as const;
 
 export type PremiumTransactionStatus = (typeof premiumTransactionStatuses)[number];

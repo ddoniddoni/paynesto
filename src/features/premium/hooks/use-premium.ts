@@ -24,7 +24,7 @@ export function usePremiumTransactionsQuery() {
 
   return useQuery({
     queryKey: premiumKeys.transactions(userId),
-    queryFn: () => getPremiumRepository().listTransactions(userId),
+    queryFn: () => getPremiumRepository(userId).listTransactions(userId),
   });
 }
 
@@ -33,7 +33,8 @@ export function useActivatePremiumPlanMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: PremiumCheckoutInput) => getPremiumRepository().activatePlan(userId, input),
+    mutationFn: (input: PremiumCheckoutInput) =>
+      getPremiumRepository(userId).activatePlan(userId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: premiumKeys.transactions(userId) });
     },

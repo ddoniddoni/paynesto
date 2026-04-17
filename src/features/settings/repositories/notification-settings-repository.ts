@@ -1,4 +1,4 @@
-import { hasSupabaseClientEnv } from '@/lib/env';
+import { shouldUsePreviewRepository } from '@/lib/repository-mode';
 import type {
   NotificationSettings,
   NotificationSettingsDataSource,
@@ -23,8 +23,10 @@ export type NotificationSettingsRepository = {
   ) => Promise<NotificationSettingsRepositoryResult<NotificationSettings>>;
 };
 
-export function getNotificationSettingsRepository(): NotificationSettingsRepository {
-  return hasSupabaseClientEnv
-    ? supabaseNotificationSettingsRepository
-    : previewNotificationSettingsRepository;
+export function getNotificationSettingsRepository(
+  userId?: string | null
+): NotificationSettingsRepository {
+  return shouldUsePreviewRepository(userId)
+    ? previewNotificationSettingsRepository
+    : supabaseNotificationSettingsRepository;
 }
