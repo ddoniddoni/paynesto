@@ -1,4 +1,5 @@
 import type { NotificationSettings } from '@/types/domain';
+import { getNormalizedPreviewUserId } from '@/features/auth/utils/preview-user';
 
 import { createDefaultNotificationSettings } from '@/features/settings/utils/notification-settings-utils';
 
@@ -7,7 +8,7 @@ import type { NotificationSettingsRepository } from './notification-settings-rep
 const previewDb = new Map<string, NotificationSettings>();
 
 function normalizeUserId(userId: string) {
-  return userId || 'preview-user';
+  return getNormalizedPreviewUserId(userId);
 }
 
 export const previewNotificationSettingsRepository: NotificationSettingsRepository = {

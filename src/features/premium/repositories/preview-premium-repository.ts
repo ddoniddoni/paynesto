@@ -1,4 +1,5 @@
 import type { PremiumTransaction } from '@/types/domain';
+import { getNormalizedPreviewUserId } from '@/features/auth/utils/preview-user';
 
 import { createPremiumExpiryDate } from '@/features/premium/utils/premium-utils';
 
@@ -7,7 +8,7 @@ import type { PremiumRepository } from './premium-repository';
 const previewDb = new Map<string, PremiumTransaction[]>();
 
 function normalizeUserId(userId: string) {
-  return userId || 'preview-user';
+  return getNormalizedPreviewUserId(userId);
 }
 
 function createPreviewId() {

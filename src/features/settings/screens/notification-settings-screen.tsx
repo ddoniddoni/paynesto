@@ -27,6 +27,7 @@ import {
   getFxAlertGateCopy,
   reminderLeadDayLabels,
 } from '../utils/notification-settings-utils';
+import { PREVIEW_USER_ID } from '@/features/auth/utils/preview-user';
 
 const reminderLeadDayOptions: readonly NotificationLeadDays[] = [1, 3, 7];
 
@@ -73,7 +74,7 @@ export function NotificationSettingsScreen() {
     return createNotificationSchedulePreview({
       settings: {
         id: 'preview-settings',
-        userId: 'preview-user',
+        userId: PREVIEW_USER_ID,
         ...draft,
         createdAt: '',
         updatedAt: '',

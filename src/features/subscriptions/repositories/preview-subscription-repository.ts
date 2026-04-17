@@ -1,4 +1,5 @@
 import type { Subscription } from '@/types/domain';
+import { getNormalizedPreviewUserId } from '@/features/auth/utils/preview-user';
 
 import type { SubscriptionRepository } from './subscription-repository';
 
@@ -55,7 +56,7 @@ const previewSeed: Omit<Subscription, 'userId'>[] = [
 const previewDb = new Map<string, Subscription[]>();
 
 function getUserIdOrPreview(userId: string) {
-  return userId || 'preview-user';
+  return getNormalizedPreviewUserId(userId);
 }
 
 function sortSubscriptions(subscriptions: Subscription[]) {

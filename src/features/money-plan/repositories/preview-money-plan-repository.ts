@@ -1,11 +1,12 @@
 import type { UserFinancialProfile } from '@/types/domain';
+import { getNormalizedPreviewUserId } from '@/features/auth/utils/preview-user';
 
 import type { MoneyPlanRepository } from './money-plan-repository';
 
 const previewDb = new Map<string, UserFinancialProfile>();
 
 function getUserIdOrPreview(userId: string) {
-  return userId || 'preview-user';
+  return getNormalizedPreviewUserId(userId);
 }
 
 function createPreviewId() {

@@ -3,6 +3,7 @@ import type {
   NotificationSettings,
   NotificationSettingsWriteInput,
 } from '@/types/domain';
+import { getNormalizedPreviewUserId } from '@/features/auth/utils/preview-user';
 
 export const reminderLeadDayLabels: Record<NotificationLeadDays, string> = {
   1: '1 day',
@@ -12,10 +13,11 @@ export const reminderLeadDayLabels: Record<NotificationLeadDays, string> = {
 
 export function createDefaultNotificationSettings(userId: string): NotificationSettings {
   const timestamp = new Date().toISOString();
+  const normalizedUserId = getNormalizedPreviewUserId(userId);
 
   return {
-    id: `notification-settings-${userId || 'preview-user'}`,
-    userId: userId || 'preview-user',
+    id: `notification-settings-${normalizedUserId}`,
+    userId: normalizedUserId,
     billingRemindersEnabled: true,
     trialEndingRemindersEnabled: true,
     fxVolatilityAlertsEnabled: false,
