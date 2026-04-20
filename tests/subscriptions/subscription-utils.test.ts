@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  defaultSubscriptionFilters,
+  filterSubscriptions,
   getCancellationScore,
   getMonthlyNormalizedAmount,
   getNextUpcomingSubscription,
   getTrialEndingCount,
+  hasActiveSubscriptionFilters,
 } from '../../src/features/subscriptions/utils/subscription-utils';
 import type { Subscription } from '../../src/types/domain';
 
@@ -57,5 +60,48 @@ describe('subscription utils', () => {
         { ...baseSubscription, id: 'sub-2', isTrial: false },
       ])
     ).toBe(1);
+  });
+
+  it('filters subscriptions by category, currency, and billing cycle', () => {
+    const subscriptions: Subscription[] = [
+      baseSubscription,
+      {
+        ...baseSubscription,
+        id: 'sub-2',
+        serviceName: 'ChatGPT',
+        category: 'AI',
+        currency: 'USD',
+        billingCycle: 'monthly',
+      },
+      {
+        ...baseSubscription,
+        id: 'sub-3',
+        serviceName: 'Dropbox',
+        category: 'Cloud',
+        currency: 'USD',
+        billingCycle: 'yearly',
+      },
+    ];
+
+    const filtered = filterSubscriptions(subscriptions, {
+      category: 'Cloud',
+      currency: 'USD',
+      billingCycle: 'yearly',
+    });
+
+    expect(filtered.map((subscription) => subscription.id)).toEqual(['sub-3']);
+  });
+
+  it('keeps all subscriptions when filters are reset', () => {
+    expect(filterSubscriptions([baseSubscription], defaultSubscriptionFilters)).toEqual([
+      baseSubscription,
+    ]);
+    expect(hasActiveSubscriptionFilters(defaultSubscriptionFilters)).toBe(false);
+    expect(
+      hasActiveSubscriptionFilters({
+        ...defaultSubscriptionFilters,
+        currency: 'USD',
+      })
+    ).toBe(true);
   });
 });

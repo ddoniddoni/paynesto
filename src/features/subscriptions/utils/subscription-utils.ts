@@ -8,6 +8,22 @@ import type {
   UsageFrequency,
 } from '@/types/domain';
 
+export type SubscriptionCategoryFilter = 'all' | Subscription['category'];
+export type SubscriptionCurrencyFilter = 'all' | SupportedCurrency;
+export type SubscriptionBillingCycleFilter = 'all' | SubscriptionBillingCycle;
+
+export type SubscriptionFilters = {
+  category: SubscriptionCategoryFilter;
+  currency: SubscriptionCurrencyFilter;
+  billingCycle: SubscriptionBillingCycleFilter;
+};
+
+export const defaultSubscriptionFilters: SubscriptionFilters = {
+  category: 'all',
+  currency: 'all',
+  billingCycle: 'all',
+};
+
 export function getMonthlyNormalizedAmount(
   amount: number,
   billingCycle: SubscriptionBillingCycle
@@ -99,4 +115,23 @@ export function getNextUpcomingSubscription(subscriptions: Subscription[]) {
 
 export function getTrialEndingCount(subscriptions: Subscription[]) {
   return subscriptions.filter((subscription) => subscription.isTrial && subscription.isActive).length;
+}
+
+export function hasActiveSubscriptionFilters(filters: SubscriptionFilters) {
+  return (
+    filters.category !== defaultSubscriptionFilters.category ||
+    filters.currency !== defaultSubscriptionFilters.currency ||
+    filters.billingCycle !== defaultSubscriptionFilters.billingCycle
+  );
+}
+
+export function filterSubscriptions(subscriptions: Subscription[], filters: SubscriptionFilters) {
+  return subscriptions.filter((subscription) => {
+    const matchesCategory = filters.category === 'all' || subscription.category === filters.category;
+    const matchesCurrency = filters.currency === 'all' || subscription.currency === filters.currency;
+    const matchesBillingCycle =
+      filters.billingCycle === 'all' || subscription.billingCycle === filters.billingCycle;
+
+    return matchesCategory && matchesCurrency && matchesBillingCycle;
+  });
 }
