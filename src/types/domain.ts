@@ -96,6 +96,25 @@ export type BudgetReport = {
 
 export type MoneyPlanDataSource = 'supabase' | 'preview';
 
+export const onboardingCompletionKinds = ['completed', 'skipped'] as const;
+
+export type OnboardingCompletionKind = (typeof onboardingCompletionKinds)[number];
+
+export type OnboardingStatus = {
+  id: string;
+  userId: string;
+  completedAt?: string;
+  skippedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OnboardingCompletionInput = {
+  kind: OnboardingCompletionKind;
+};
+
+export type OnboardingDataSource = 'supabase' | 'preview';
+
 export type ExchangeRateSnapshot = {
   id: string;
   baseCurrency: 'USD';
