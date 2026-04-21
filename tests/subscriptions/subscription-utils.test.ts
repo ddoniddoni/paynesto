@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import {
   defaultSubscriptionFilters,
+  defaultSubscriptionSortKey,
   filterSubscriptions,
   getCancellationScore,
   getMonthlyNormalizedAmount,
   getNextUpcomingSubscription,
+  getSubscriptionListView,
   getTrialEndingCount,
   hasActiveSubscriptionFilters,
+  searchSubscriptions,
+  sortSubscriptions,
 } from '../../src/features/subscriptions/utils/subscription-utils';
 import type { Subscription } from '../../src/types/domain';
 
@@ -103,5 +107,96 @@ describe('subscription utils', () => {
         currency: 'USD',
       })
     ).toBe(true);
+  });
+
+  it('searches subscriptions by service name case-insensitively', () => {
+    const subscriptions: Subscription[] = [
+      baseSubscription,
+      { ...baseSubscription, id: 'sub-2', serviceName: 'ChatGPT Plus' },
+    ];
+
+    expect(searchSubscriptions(subscriptions, 'chat').map((subscription) => subscription.id)).toEqual([
+      'sub-2',
+    ]);
+  });
+
+  it('searches subscriptions by note text', () => {
+    const subscriptions: Subscription[] = [
+      baseSubscription,
+      {
+        ...baseSubscription,
+        id: 'sub-2',
+        serviceName: 'Apple One',
+        note: 'Family shared account',
+      },
+    ];
+
+    expect(searchSubscriptions(subscriptions, 'family').map((subscription) => subscription.id)).toEqual([
+      'sub-2',
+    ]);
+  });
+
+  it('sorts subscriptions by next billing date first', () => {
+    const sorted = sortSubscriptions(
+      [
+        { ...baseSubscription, id: 'sub-2', serviceName: 'B', nextBillingDate: '2026-04-21' },
+        { ...baseSubscription, id: 'sub-1', serviceName: 'A', nextBillingDate: '2026-04-18' },
+      ],
+      'next_billing_asc'
+    );
+
+    expect(sorted.map((subscription) => subscription.id)).toEqual(['sub-1', 'sub-2']);
+  });
+
+  it('sorts subscriptions by normalized monthly cost descending', () => {
+    const sorted = sortSubscriptions(
+      [
+        { ...baseSubscription, id: 'sub-1', amount: 120000, billingCycle: 'yearly' },
+        { ...baseSubscription, id: 'sub-2', amount: 15000, billingCycle: 'monthly' },
+        { ...baseSubscription, id: 'sub-3', amount: 9000, billingCycle: 'monthly' },
+      ],
+      'monthly_cost_desc'
+    );
+
+    expect(sorted.map((subscription) => subscription.id)).toEqual(['sub-2', 'sub-1', 'sub-3']);
+  });
+
+  it('combines filters, search, and sort into one visible list', () => {
+    const subscriptions: Subscription[] = [
+      {
+        ...baseSubscription,
+        id: 'sub-1',
+        serviceName: 'Netflix',
+        amount: 17000,
+        nextBillingDate: '2026-04-19',
+      },
+      {
+        ...baseSubscription,
+        id: 'sub-2',
+        serviceName: 'YouTube Premium',
+        amount: 14900,
+        nextBillingDate: '2026-04-18',
+      },
+      {
+        ...baseSubscription,
+        id: 'sub-3',
+        serviceName: 'ChatGPT Plus',
+        category: 'AI',
+        currency: 'USD',
+        amount: 20,
+        nextBillingDate: '2026-04-17',
+      },
+    ];
+
+    const visibleSubscriptions = getSubscriptionListView(subscriptions, {
+      filters: {
+        ...defaultSubscriptionFilters,
+        category: 'OTT',
+      },
+      searchQuery: 'premium',
+      sortKey: defaultSubscriptionSortKey,
+    });
+
+    expect(visibleSubscriptions.map((subscription) => subscription.id)).toEqual(['sub-2']);
   });
 });

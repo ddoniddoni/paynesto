@@ -18,11 +18,21 @@ export type SubscriptionFilters = {
   billingCycle: SubscriptionBillingCycleFilter;
 };
 
+export type SubscriptionSortKey = 'next_billing_asc' | 'monthly_cost_desc' | 'service_name_asc';
+
+export type SubscriptionListViewOptions = {
+  filters: SubscriptionFilters;
+  searchQuery: string;
+  sortKey: SubscriptionSortKey;
+};
+
 export const defaultSubscriptionFilters: SubscriptionFilters = {
   category: 'all',
   currency: 'all',
   billingCycle: 'all',
 };
+
+export const defaultSubscriptionSortKey: SubscriptionSortKey = 'next_billing_asc';
 
 export function getMonthlyNormalizedAmount(
   amount: number,
@@ -59,6 +69,20 @@ export function getDaysUntilDate(isoDate: string) {
   }
 
   return differenceInCalendarDays(parsedDate, new Date());
+}
+
+function getSortableDateTime(isoDate: string) {
+  const parsedDate = parseISO(isoDate);
+
+  if (!isValid(parsedDate)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return parsedDate.getTime();
+}
+
+function normalizeSearchQuery(searchQuery: string) {
+  return searchQuery.trim().toLocaleLowerCase();
 }
 
 export function getSubscriptionStatus(subscription: Subscription): SubscriptionStatus {
@@ -134,4 +158,57 @@ export function filterSubscriptions(subscriptions: Subscription[], filters: Subs
 
     return matchesCategory && matchesCurrency && matchesBillingCycle;
   });
+}
+
+export function searchSubscriptions(subscriptions: Subscription[], searchQuery: string) {
+  const normalizedQuery = normalizeSearchQuery(searchQuery);
+
+  if (!normalizedQuery) {
+    return subscriptions;
+  }
+
+  return subscriptions.filter((subscription) => {
+    const serviceName = subscription.serviceName.toLocaleLowerCase();
+    const note = subscription.note?.toLocaleLowerCase() ?? '';
+
+    return serviceName.includes(normalizedQuery) || note.includes(normalizedQuery);
+  });
+}
+
+export function sortSubscriptions(subscriptions: Subscription[], sortKey: SubscriptionSortKey) {
+  return subscriptions.slice().sort((left, right) => {
+    if (sortKey === 'monthly_cost_desc') {
+      const leftMonthlyAmount = getMonthlyNormalizedAmount(left.amount, left.billingCycle);
+      const rightMonthlyAmount = getMonthlyNormalizedAmount(right.amount, right.billingCycle);
+
+      if (rightMonthlyAmount !== leftMonthlyAmount) {
+        return rightMonthlyAmount - leftMonthlyAmount;
+      }
+
+      return left.serviceName.localeCompare(right.serviceName);
+    }
+
+    if (sortKey === 'service_name_asc') {
+      return left.serviceName.localeCompare(right.serviceName);
+    }
+
+    const leftBillingTime = getSortableDateTime(left.nextBillingDate);
+    const rightBillingTime = getSortableDateTime(right.nextBillingDate);
+
+    if (leftBillingTime !== rightBillingTime) {
+      return leftBillingTime - rightBillingTime;
+    }
+
+    return left.serviceName.localeCompare(right.serviceName);
+  });
+}
+
+export function getSubscriptionListView(
+  subscriptions: Subscription[],
+  options: SubscriptionListViewOptions
+) {
+  return sortSubscriptions(
+    searchSubscriptions(filterSubscriptions(subscriptions, options.filters), options.searchQuery),
+    options.sortKey
+  );
 }
