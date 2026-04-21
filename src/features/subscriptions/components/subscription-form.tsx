@@ -36,8 +36,8 @@ type SubscriptionFormProps = {
 };
 
 const billingCycleLabels = {
-  monthly: '월간',
-  yearly: '연간',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
 } as const;
 
 const currencyLabels = {
@@ -48,25 +48,25 @@ const currencyLabels = {
 const paymentLabels = {
   app_store: 'App Store',
   play_store: 'Play Store',
-  card: '카드',
+  card: 'Card',
   paypal: 'PayPal',
-  other: '기타',
+  other: 'Other',
 } as const;
 
 const usageLabels = {
-  high: '높음',
-  medium: '보통',
-  low: '낮음',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
 } as const;
 
 const activeLabels = {
-  true: '활성',
-  false: '비활성',
+  true: 'Active',
+  false: 'Inactive',
 } as const;
 
 const trialLabels = {
-  true: '체험 중',
-  false: '일반 구독',
+  true: 'Free trial',
+  false: 'Paid subscription',
 } as const;
 
 export function SubscriptionForm({
@@ -110,10 +110,11 @@ export function SubscriptionForm({
               {mode === 'create' ? 'New subscription' : 'Edit subscription'}
             </ThemedText>
             <ThemedText type="title" style={styles.title}>
-              {mode === 'create' ? '구독 추가' : '구독 수정'}
+              {mode === 'create' ? 'Add subscription' : 'Update subscription'}
             </ThemedText>
             <ThemedText themeColor="textSecondary">
-              구독 금액, 통화, 결제일, 사용 빈도를 입력하면 이후 홈/머니 플랜 단계에서도 바로 연결할 수 있어요.
+              Track billing amount, payment timing, usage, and trial details so Paynesto can
+              connect this subscription to your budget.
             </ThemedText>
             {sourceHint ? (
               <ThemedText type="bodySm" themeColor="textSecondary">
@@ -128,7 +129,7 @@ export function SubscriptionForm({
               name="serviceName"
               render={({ field: { onBlur, onChange, value } }) => (
                 <TextInputField
-                  label="서비스 이름"
+                  label="Service name"
                   placeholder="Netflix, ChatGPT Plus, YouTube Premium"
                   value={value}
                   onChangeText={onChange}
@@ -143,8 +144,8 @@ export function SubscriptionForm({
               name="amount"
               render={({ field: { onBlur, onChange, value } }) => (
                 <TextInputField
-                  label="결제 금액"
-                  placeholder="17000 또는 20"
+                  label="Billing amount"
+                  placeholder="17000 or 20"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -159,13 +160,13 @@ export function SubscriptionForm({
               name="nextBillingDate"
               render={({ field: { onChange, value } }) => (
                 <TextInputField
-                  label="다음 결제일"
+                  label="Next billing date"
                   placeholder="2026-04-25"
                   value={value}
                   onChangeText={onChange}
                   autoCapitalize="none"
                   errorMessage={errors.nextBillingDate?.message}
-                  helperText="YYYY-MM-DD 형식으로 입력해 주세요."
+                  helperText="Use YYYY-MM-DD so reminders can be scheduled accurately."
                 />
               )}
             />
@@ -175,7 +176,7 @@ export function SubscriptionForm({
               name="category"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="카테고리"
+                  label="Category"
                   value={value}
                   options={subscriptionCategories}
                   onChange={onChange}
@@ -188,7 +189,7 @@ export function SubscriptionForm({
               name="billingCycle"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="결제 주기"
+                  label="Billing cycle"
                   value={value}
                   options={subscriptionBillingCycles}
                   labels={billingCycleLabels}
@@ -202,7 +203,7 @@ export function SubscriptionForm({
               name="currency"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="통화"
+                  label="Currency"
                   value={value}
                   options={supportedCurrencies}
                   labels={currencyLabels}
@@ -216,7 +217,7 @@ export function SubscriptionForm({
               name="paymentMethodType"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="결제 수단"
+                  label="Payment method"
                   value={value}
                   options={paymentMethodTypes}
                   labels={paymentLabels}
@@ -230,7 +231,7 @@ export function SubscriptionForm({
               name="usageFrequency"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="사용 빈도"
+                  label="Usage frequency"
                   value={value}
                   options={usageFrequencies}
                   labels={usageLabels}
@@ -244,7 +245,8 @@ export function SubscriptionForm({
               name="isTrial"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="구독 상태"
+                  label="Trial tracking"
+                  helperText="Mark free trials so Paynesto can highlight conversion risk before paid billing starts."
                   value={String(value) as 'true' | 'false'}
                   options={['true', 'false'] as const}
                   labels={trialLabels}
@@ -259,13 +261,13 @@ export function SubscriptionForm({
                 name="trialEndDate"
                 render={({ field: { onChange, value } }) => (
                   <TextInputField
-                    label="체험 종료일"
+                    label="Trial end date"
                     placeholder="2026-04-17"
                     value={value}
                     onChangeText={onChange}
                     autoCapitalize="none"
                     errorMessage={errors.trialEndDate?.message}
-                    helperText="체험 종료 알림과 해지 후보 계산에 사용됩니다."
+                    helperText="Use YYYY-MM-DD. This powers trial guidance and reminder previews."
                   />
                 )}
               />
@@ -276,7 +278,7 @@ export function SubscriptionForm({
               name="isActive"
               render={({ field: { onChange, value } }) => (
                 <SubscriptionOptionGroup
-                  label="활성 여부"
+                  label="Tracking status"
                   value={String(value) as 'true' | 'false'}
                   options={['true', 'false'] as const}
                   labels={activeLabels}
@@ -290,8 +292,8 @@ export function SubscriptionForm({
               name="note"
               render={({ field: { onBlur, onChange, value } }) => (
                 <TextInputField
-                  label="메모"
-                  placeholder="업무용, 가족 공유, 다음 달 해지 검토 등"
+                  label="Note"
+                  placeholder="Shared with family, review after payday, cancel if unused"
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
