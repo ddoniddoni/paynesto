@@ -8,6 +8,7 @@ import {
   getMonthlyNormalizedAmount,
   getNextUpcomingSubscription,
   getSubscriptionListView,
+  getTrialManagementSummary,
   getTrialEndingCount,
   hasActiveSubscriptionFilters,
   searchSubscriptions,
@@ -198,5 +199,69 @@ describe('subscription utils', () => {
     });
 
     expect(visibleSubscriptions.map((subscription) => subscription.id)).toEqual(['sub-2']);
+  });
+
+  it('returns a standard subscription summary for non-trial items', () => {
+    const summary = getTrialManagementSummary(baseSubscription, new Date('2026-04-17T00:00:00.000Z'));
+
+    expect(summary).toMatchObject({
+      status: 'not_trial',
+      daysUntilTrialEnd: null,
+    });
+  });
+
+  it('flags active trial items without an end date', () => {
+    const summary = getTrialManagementSummary(
+      {
+        ...baseSubscription,
+        isTrial: true,
+        trialEndDate: undefined,
+      },
+      new Date('2026-04-17T00:00:00.000Z')
+    );
+
+    expect(summary.status).toBe('missing_end_date');
+  });
+
+  it('marks trials ending within three days as urgent', () => {
+    const summary = getTrialManagementSummary(
+      {
+        ...baseSubscription,
+        isTrial: true,
+        trialEndDate: '2026-04-20',
+      },
+      new Date('2026-04-17T00:00:00.000Z')
+    );
+
+    expect(summary.status).toBe('ending_soon');
+    expect(summary.daysUntilTrialEnd).toBe(3);
+  });
+
+  it('marks future trials outside the urgent window as active', () => {
+    const summary = getTrialManagementSummary(
+      {
+        ...baseSubscription,
+        isTrial: true,
+        trialEndDate: '2026-04-25',
+      },
+      new Date('2026-04-17T00:00:00.000Z')
+    );
+
+    expect(summary.status).toBe('active');
+    expect(summary.daysUntilTrialEnd).toBe(8);
+  });
+
+  it('marks past trial end dates as ended', () => {
+    const summary = getTrialManagementSummary(
+      {
+        ...baseSubscription,
+        isTrial: true,
+        trialEndDate: '2026-04-15',
+      },
+      new Date('2026-04-17T00:00:00.000Z')
+    );
+
+    expect(summary.status).toBe('ended');
+    expect(summary.daysUntilTrialEnd).toBe(-2);
   });
 });

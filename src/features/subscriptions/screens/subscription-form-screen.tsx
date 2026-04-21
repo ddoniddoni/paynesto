@@ -29,10 +29,10 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
   async function handleCreate(input: SubscriptionWriteInput) {
     const result = await createMutation.mutateAsync(input);
     Alert.alert(
-      '구독 저장 완료',
+      'Subscription saved',
       result.source === 'preview'
-        ? 'Preview 목록에 새 구독을 추가했어요.'
-        : '새 구독을 저장했어요.'
+        ? 'The subscription was added to preview data.'
+        : 'The subscription was saved.'
     );
     router.replace(`/subscriptions/${result.data.id}` as Href);
   }
@@ -44,10 +44,10 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
 
     const result = await editMutation.mutateAsync(input);
     Alert.alert(
-      '구독 수정 완료',
+      'Subscription updated',
       result.source === 'preview'
-        ? 'Preview 목록의 구독을 수정했어요.'
-        : '구독 정보를 업데이트했어요.'
+        ? 'The preview subscription was updated.'
+        : 'The subscription was updated.'
     );
     router.replace(`/subscriptions/${result.data.id}` as Href);
   }
@@ -56,8 +56,8 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
     return (
       <CenteredState
         eyebrow="Edit subscription"
-        title="기존 구독 정보를 불러오고 있어요"
-        description="현재 저장된 값을 먼저 가져온 뒤 수정 화면을 열게요."
+        title="Loading subscription"
+        description="We are loading the saved values before opening the edit form."
         isLoading
       />
     );
@@ -67,13 +67,13 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
     return (
       <CenteredState
         eyebrow="Edit subscription"
-        title="수정할 구독을 불러오지 못했어요"
+        title="Could not load this subscription"
         description={
           detailQuery.error instanceof Error
             ? detailQuery.error.message
-            : '잠시 후 다시 시도해 주세요.'
+            : 'Please try again in a moment.'
         }
-        actionLabel="목록으로"
+        actionLabel="Back to list"
         onAction={() => router.replace('/subscriptions' as Href)}
       />
     );
@@ -83,9 +83,9 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
     return (
       <CenteredState
         eyebrow="Edit subscription"
-        title="수정할 구독이 없어요"
-        description="이미 삭제되었거나 접근할 수 없는 항목일 수 있습니다."
-        actionLabel="목록으로"
+        title="Subscription not found"
+        description="It may have been deleted or you may not have access to it."
+        actionLabel="Back to list"
         onAction={() => router.replace('/subscriptions' as Href)}
       />
     );
@@ -95,7 +95,7 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
     <SubscriptionForm
       mode={props.mode}
       initialValues={props.mode === 'edit' ? detailQuery.data?.data ?? undefined : undefined}
-      submitLabel={props.mode === 'create' ? '구독 저장' : '변경 저장'}
+      submitLabel={props.mode === 'create' ? 'Save subscription' : 'Save changes'}
       isSubmitting={props.mode === 'create' ? createMutation.isPending : editMutation.isPending}
       submitError={
         props.mode === 'create'
@@ -109,8 +109,8 @@ export function SubscriptionFormScreen(props: SubscriptionFormScreenProps) {
       sourceHint={
         props.mode === 'edit'
           ? detailQuery.data?.source === 'preview'
-            ? '현재 preview mode로 수정 중입니다.'
-            : '현재 Supabase 데이터와 연결되어 있습니다.'
+            ? 'You are editing preview data.'
+            : 'You are editing Supabase data.'
           : null
       }
       onSubmit={props.mode === 'create' ? handleCreate : handleUpdate}

@@ -26,6 +26,22 @@ export type SubscriptionListViewOptions = {
   sortKey: SubscriptionSortKey;
 };
 
+export type TrialManagementStatus =
+  | 'not_trial'
+  | 'inactive'
+  | 'missing_end_date'
+  | 'active'
+  | 'ending_soon'
+  | 'ended';
+
+export type TrialManagementSummary = {
+  status: TrialManagementStatus;
+  daysUntilTrialEnd: number | null;
+  title: string;
+  description: string;
+  nextAction: string;
+};
+
 export const defaultSubscriptionFilters: SubscriptionFilters = {
   category: 'all',
   currency: 'all',
@@ -83,6 +99,16 @@ function getSortableDateTime(isoDate: string) {
 
 function normalizeSearchQuery(searchQuery: string) {
   return searchQuery.trim().toLocaleLowerCase();
+}
+
+function getDaysUntilIsoDate(isoDate: string, referenceDate: Date) {
+  const parsedDate = parseISO(isoDate);
+
+  if (!isValid(parsedDate)) {
+    return null;
+  }
+
+  return differenceInCalendarDays(parsedDate, referenceDate);
 }
 
 export function getSubscriptionStatus(subscription: Subscription): SubscriptionStatus {
@@ -211,4 +237,106 @@ export function getSubscriptionListView(
     searchSubscriptions(filterSubscriptions(subscriptions, options.filters), options.searchQuery),
     options.sortKey
   );
+}
+
+export function getTrialManagementSummary(
+  subscription: Subscription,
+  referenceDate = new Date()
+): TrialManagementSummary {
+  if (!subscription.isTrial) {
+    return {
+      status: 'not_trial',
+      daysUntilTrialEnd: null,
+      title: 'Standard subscription',
+      description: 'This subscription is not marked as a free trial.',
+      nextAction: 'Review the next billing date and usage frequency instead.',
+    };
+  }
+
+  if (!subscription.isActive) {
+    return {
+      status: 'inactive',
+      daysUntilTrialEnd: null,
+      title: 'Inactive trial',
+      description: 'This trial is not active in your current subscription list.',
+      nextAction: 'Keep it inactive unless the service starts charging again.',
+    };
+  }
+
+  if (!subscription.trialEndDate) {
+    return {
+      status: 'missing_end_date',
+      daysUntilTrialEnd: null,
+      title: 'Trial end date needed',
+      description: 'This trial is active, but no trial end date is saved.',
+      nextAction: 'Add the trial end date so reminders and review guidance can work.',
+    };
+  }
+
+  const daysUntilTrialEnd = getDaysUntilIsoDate(subscription.trialEndDate, referenceDate);
+
+  if (daysUntilTrialEnd === null) {
+    return {
+      status: 'missing_end_date',
+      daysUntilTrialEnd: null,
+      title: 'Trial end date needs review',
+      description: 'The saved trial end date could not be read.',
+      nextAction: 'Edit the subscription and save the trial end date as YYYY-MM-DD.',
+    };
+  }
+
+  if (daysUntilTrialEnd < 0) {
+    return {
+      status: 'ended',
+      daysUntilTrialEnd,
+      title: 'Trial may have ended',
+      description: `The saved trial end date passed ${Math.abs(daysUntilTrialEnd)} day(s) ago.`,
+      nextAction: 'Confirm whether the trial converted to paid billing or should be canceled.',
+    };
+  }
+
+  if (daysUntilTrialEnd <= 3) {
+    return {
+      status: 'ending_soon',
+      daysUntilTrialEnd,
+      title: 'Trial ending soon',
+      description:
+        daysUntilTrialEnd === 0
+          ? 'This trial ends today.'
+          : `This trial ends in ${daysUntilTrialEnd} day(s).`,
+      nextAction: 'Decide today whether to keep, downgrade, or cancel before billing starts.',
+    };
+  }
+
+  return {
+    status: 'active',
+    daysUntilTrialEnd,
+    title: 'Trial is being tracked',
+    description: `This trial ends in ${daysUntilTrialEnd} day(s).`,
+    nextAction: 'Keep the reminder enabled and review usage before the trial ends.',
+  };
+}
+
+export function formatTrialManagementStatus(status: TrialManagementStatus) {
+  if (status === 'ending_soon') {
+    return 'Ending soon';
+  }
+
+  if (status === 'missing_end_date') {
+    return 'Needs date';
+  }
+
+  if (status === 'not_trial') {
+    return 'Not a trial';
+  }
+
+  if (status === 'inactive') {
+    return 'Inactive';
+  }
+
+  if (status === 'ended') {
+    return 'Ended';
+  }
+
+  return 'Active trial';
 }

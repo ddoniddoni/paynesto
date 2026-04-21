@@ -23,11 +23,13 @@ import {
 import {
   formatMonthlyEquivalent,
   formatSubscriptionAmount,
+  formatTrialManagementStatus,
   getCancellationScore,
   getDaysUntilDate,
   getDuplicateCategoryCount,
   getMonthlyNormalizedAmount,
   getSubscriptionStatus,
+  getTrialManagementSummary,
 } from '@/features/subscriptions/utils/subscription-utils';
 import { formatAppDate } from '@/lib/date';
 
@@ -60,6 +62,7 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
     subscription && snapshotQuery.data?.data
       ? createSubscriptionFxEstimate(subscription, snapshotQuery.data.data)
       : null;
+  const trialSummary = subscription ? getTrialManagementSummary(subscription) : null;
 
   function handleDelete() {
     Alert.alert(
@@ -214,6 +217,28 @@ export function SubscriptionDetailScreen({ subscriptionId }: { subscriptionId: s
             ) : null}
           </SectionCard>
 
+          {trialSummary && trialSummary.status !== 'not_trial' ? (
+            <SectionCard
+              eyebrow="Trial management"
+              title={trialSummary.title}
+              description={trialSummary.description}>
+              <View style={styles.trialList}>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  Status: {formatTrialManagementStatus(trialSummary.status)}
+                </ThemedText>
+                {trialSummary.daysUntilTrialEnd !== null ? (
+                  <ThemedText type="bodySm" themeColor="textSecondary">
+                    Trial timing:{' '}
+                    {trialSummary.daysUntilTrialEnd >= 0
+                      ? `D-${trialSummary.daysUntilTrialEnd}`
+                      : `D+${Math.abs(trialSummary.daysUntilTrialEnd)}`}
+                  </ThemedText>
+                ) : null}
+                <ThemedText>{trialSummary.nextAction}</ThemedText>
+              </View>
+            </SectionCard>
+          ) : null}
+
           <SectionCard
             eyebrow="Usage review"
             title={`Usage frequency: ${subscription.usageFrequency}`}
@@ -271,6 +296,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   fxList: {
+    gap: Spacing.two,
+  },
+  trialList: {
     gap: Spacing.two,
   },
 });
