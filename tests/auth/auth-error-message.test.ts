@@ -23,7 +23,7 @@ describe('getAuthErrorMessage', () => {
 
   it('returns a generic message for non-Error values', () => {
     expect(getAuthErrorMessage('plain string')).toBe(
-      '인증 처리 중 알 수 없는 오류가 발생했어요.'
+      '인증 처리 중 알 수 없는 오류가 발생했습니다.'
     );
   });
 });

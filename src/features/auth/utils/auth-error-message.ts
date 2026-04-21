@@ -11,7 +11,7 @@ export function getAuthErrorMessage(error: unknown) {
     }
 
     if (normalizedMessage.includes('password should be at least')) {
-      return '비밀번호 길이가 너무 짧아요. 6자 이상으로 입력해 주세요.';
+      return '비밀번호는 6자 이상으로 입력해 주세요.';
     }
 
     if (normalizedMessage.includes('unable to validate email address')) {
@@ -21,5 +21,5 @@ export function getAuthErrorMessage(error: unknown) {
     return error.message;
   }
 
-  return '인증 처리 중 알 수 없는 오류가 발생했어요.';
+  return '인증 처리 중 알 수 없는 오류가 발생했습니다.';
 }

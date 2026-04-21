@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -19,6 +19,7 @@ import {
   authCredentialsSchema,
   type AuthCredentialsInput,
 } from '@/features/auth/schemas/auth-credentials-schema';
+import { useTheme } from '@/hooks/use-theme';
 
 type EmailAuthScreenProps = {
   mode: 'sign-in' | 'sign-up';
@@ -29,19 +30,21 @@ type EmailAuthScreenProps = {
 
 const screenCopy = {
   'sign-in': {
-    eyebrow: 'Paynesto auth',
-    title: '로그인',
-    description: '구독 관리와 머니 플랜을 계속 보려면 계정으로 로그인해 주세요.',
+    eyebrow: 'Paynesto',
+    title: '구독비를 월급 흐름에\n맞춰 보세요',
+    description:
+      '체험 모드로 바로 둘러보거나\n계정으로 로그인해 구독, 무료체험,\n예산 가이드를 이어서 관리하세요.',
     submitLabel: '로그인',
-    alternatePrompt: '계정이 아직 없다면,',
+    alternatePrompt: '계정이 아직 없다면',
     alternateActionLabel: '회원가입',
   },
   'sign-up': {
-    eyebrow: 'Paynesto auth',
-    title: '회원가입',
-    description: '이메일과 비밀번호로 계정을 만들고 이후 구독과 예산 데이터를 연결할 준비를 해요.',
+    eyebrow: 'Paynesto',
+    title: '내 구독 지출을\n정리해볼까요',
+    description:
+      '이메일 계정을 만들고 구독 목록,\n월급 기반 예산, 결제 알림을\n한곳에서 관리하세요.',
     submitLabel: '회원가입',
-    alternatePrompt: '이미 계정이 있다면,',
+    alternatePrompt: '이미 계정이 있다면',
     alternateActionLabel: '로그인',
   },
 } as const;
@@ -53,6 +56,8 @@ export function EmailAuthScreen({
   onAlternateAction,
 }: EmailAuthScreenProps) {
   const safeAreaInsets = useSafeAreaInsets();
+  const theme = useTheme();
+  const { width: viewportWidth } = useWindowDimensions();
   const { status, errorMessage, enterPreviewMode } = useAuthSession();
   const copy = screenCopy[mode];
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -129,33 +134,47 @@ export function EmailAuthScreen({
           bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
         }}
         contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <ThemedView type="surfaceElevated" style={styles.heroCard}>
+        <View
+          style={[
+            styles.container,
+            { width: Math.min(Math.max(viewportWidth - 72, 280), MaxContentWidth) },
+          ]}>
+          <View style={styles.heroBlock}>
             <ThemedText type="eyebrow" themeColor="textSecondary">
               {copy.eyebrow}
             </ThemedText>
             <ThemedText type="title" style={styles.title}>
               {copy.title}
             </ThemedText>
-            <ThemedText themeColor="textSecondary">{copy.description}</ThemedText>
-          </ThemedView>
+            <ThemedText themeColor="textSecondary" style={styles.description}>
+              {copy.description}
+            </ThemedText>
+          </View>
 
           {bannerMessage ? (
             <SectionCard
               eyebrow="설정 필요"
               tone="accent"
-              title="Supabase 연결 정보가 아직 없어요"
+              title="Supabase 연결 정보가 필요합니다"
               description={bannerMessage}
             />
           ) : null}
 
-          <ThemedView type="surfaceElevated" style={styles.formCard}>
-            <Button
-              variant="ghost"
-              onPress={() => void enterPreviewMode()}
-              style={styles.primaryButton}>
-              Preview로 둘러보기
-            </Button>
+          <ThemedView
+            type="surfaceElevated"
+            style={[styles.formCard, { borderColor: theme.border }]}>
+            <View style={styles.previewBlock}>
+              <View style={styles.previewCopy}>
+                <ThemedText type="heading">먼저 체험해보기</ThemedText>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  샘플 데이터로 홈, 구독 목록,
+                  {'\n'}Money Plan을 바로 확인할 수 있습니다.
+                </ThemedText>
+              </View>
+              <Button onPress={() => void enterPreviewMode()} style={styles.primaryButton}>
+                Preview 시작
+              </Button>
+            </View>
 
             <Button
               variant="secondary"
@@ -163,7 +182,7 @@ export function EmailAuthScreen({
               onPress={() => void handleGoogleSubmit()}
               disabled={status === 'unconfigured' || isSubmitting}
               style={styles.primaryButton}>
-              Google로 계속하기
+              Google로 계속
             </Button>
 
             <View style={styles.dividerRow}>
@@ -254,29 +273,45 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 0,
     paddingTop: 32,
-    paddingBottom: 24,
+    paddingBottom: 32,
   },
   container: {
-    width: '100%',
+    minWidth: 0,
     maxWidth: MaxContentWidth,
     gap: Spacing.three,
   },
-  heroCard: {
+  heroBlock: {
     gap: Spacing.two,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    width: '100%',
+    maxWidth: 640,
   },
   title: {
-    maxWidth: 520,
+    width: '100%',
+    flexShrink: 1,
+    maxWidth: 560,
+  },
+  description: {
+    width: '100%',
+    flexShrink: 1,
+    maxWidth: 620,
   },
   formCard: {
     gap: Spacing.three,
+    alignSelf: 'stretch',
+    minWidth: 0,
     borderRadius: Radius.lg,
-    paddingHorizontal: 24,
+    borderWidth: 1,
+    paddingHorizontal: 16,
     paddingVertical: 24,
+  },
+  previewBlock: {
+    gap: Spacing.two,
+  },
+  previewCopy: {
+    gap: Spacing.one,
   },
   primaryButton: {
     alignSelf: 'stretch',
@@ -289,7 +324,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(102, 118, 138, 0.32)',
+    backgroundColor: 'rgba(116, 132, 124, 0.28)',
   },
   switchRow: {
     flexDirection: 'row',

@@ -44,8 +44,8 @@ export function Button({
           borderColor: theme.primary,
         },
         variant === 'secondary' && {
-          backgroundColor: theme.surface,
-          borderColor: theme.borderStrong,
+          backgroundColor: theme.backgroundElement,
+          borderColor: theme.border,
         },
         variant === 'ghost' && {
           backgroundColor: 'transparent',
@@ -70,7 +70,7 @@ export function Button({
                 ? theme.primaryForeground
                 : variant === 'ghost'
                   ? theme.primary
-                  : theme.text,
+                  : theme.primary,
           }}>
           {children}
         </ThemedText>
@@ -85,12 +85,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.pill,
+    borderRadius: Radius.md,
     borderWidth: 1,
     minWidth: 120,
+    minHeight: 46,
   },
   medium: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   small: {
