@@ -28,6 +28,36 @@ import {
   formatMoneyRatio,
 } from '@/features/money-plan/utils/money-plan-utils';
 import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
+import { formatSubscriptionAmount } from '@/features/subscriptions/utils/subscription-utils';
+import type { BudgetGuidancePriority } from '@/types/domain';
+
+function formatGuidancePriority(priority: BudgetGuidancePriority) {
+  if (priority === 'high') {
+    return 'High priority';
+  }
+
+  if (priority === 'medium') {
+    return 'Medium priority';
+  }
+
+  return 'Steady';
+}
+
+function formatBillingTiming(daysUntilBilling: number) {
+  if (!Number.isFinite(daysUntilBilling)) {
+    return 'Billing date needs review';
+  }
+
+  if (daysUntilBilling === 0) {
+    return 'Bills today';
+  }
+
+  if (daysUntilBilling > 0) {
+    return `Bills in ${daysUntilBilling} days`;
+  }
+
+  return `Billed ${Math.abs(daysUntilBilling)} days ago`;
+}
 
 export function MoneyPlanScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -225,6 +255,9 @@ export function MoneyPlanScreen() {
                   <ThemedText>
                     - Disposable income: {formatMoneyAmount(report.disposableIncome)}
                   </ThemedText>
+                  <ThemedText>
+                    - Committed cost ratio: {formatMoneyRatio(report.committedCostRatio)}
+                  </ThemedText>
                 </View>
               </SectionCard>
 
@@ -246,6 +279,77 @@ export function MoneyPlanScreen() {
               </SectionCard>
 
               <SectionCard
+                eyebrow="Action guide"
+                title="Recommended next moves"
+                description="Budgeting guidance based on fixed costs, subscriptions, and flexible cash flow.">
+                <View style={styles.actionList}>
+                  {report.actionCards.map((card) => (
+                    <View key={card.id} style={styles.actionRow}>
+                      <View style={styles.actionHeader}>
+                        <ThemedText type="heading" style={styles.actionTitle}>
+                          {card.title}
+                        </ThemedText>
+                        <ThemedText type="smallBold" themeColor="textSecondary">
+                          {formatGuidancePriority(card.priority)}
+                        </ThemedText>
+                      </View>
+                      <ThemedText themeColor="textSecondary">{card.summary}</ThemedText>
+                      <ThemedText type="bodySm" themeColor="textSecondary">
+                        {card.reason}
+                      </ThemedText>
+                      <ThemedText type="bodySm">{card.nextStep}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              </SectionCard>
+
+              <SectionCard
+                eyebrow="Review queue"
+                title={
+                  report.subscriptionReviewCandidates.length > 0
+                    ? 'Subscription candidates'
+                    : 'No urgent subscription candidates'
+                }
+                description={
+                  report.subscriptionReviewCandidates.length > 0
+                    ? 'Start with subscriptions that are low-usage, trial-based, duplicated, or billing soon.'
+                    : 'Active subscriptions do not currently show strong cancellation signals.'
+                }>
+                {report.subscriptionReviewCandidates.length > 0 ? (
+                  <View style={styles.candidateList}>
+                    {report.subscriptionReviewCandidates.map((candidate) => (
+                      <View key={candidate.subscriptionId} style={styles.candidateRow}>
+                        <View style={styles.actionHeader}>
+                          <View style={styles.candidateTitleBlock}>
+                            <ThemedText type="heading" style={styles.actionTitle}>
+                              {candidate.serviceName}
+                            </ThemedText>
+                            <ThemedText type="bodySm" themeColor="textSecondary">
+                              {candidate.category} / {formatBillingTiming(candidate.daysUntilBilling)}
+                            </ThemedText>
+                          </View>
+                          <ThemedText type="smallBold" themeColor="textSecondary">
+                            Review
+                          </ThemedText>
+                        </View>
+                        <ThemedText type="bodySm" themeColor="textSecondary">
+                          Monthly equivalent:{' '}
+                          {formatSubscriptionAmount(
+                            candidate.monthlyEquivalentAmount,
+                            candidate.currency
+                          )}
+                        </ThemedText>
+                        <ThemedText type="bodySm" themeColor="textSecondary">
+                          Reasons: {candidate.reasons.join(', ')}
+                        </ThemedText>
+                        <ThemedText type="bodySm">{candidate.suggestedAction}</ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </SectionCard>
+
+              <SectionCard
                 eyebrow="Recommended budget"
                 title={`${formatMoneyAmount(report.recommendedSubscriptionBudgetMin)} - ${formatMoneyAmount(report.recommendedSubscriptionBudgetMax)}`}
                 description="Recommended monthly subscription range for this salary profile.">
@@ -260,13 +364,16 @@ export function MoneyPlanScreen() {
               </SectionCard>
 
               <SectionCard
-                eyebrow="Action guide"
-                title="What to focus on next"
-                description="Simple guidance based on your current salary profile and active subscriptions.">
+                eyebrow="Report note"
+                title="What this report includes"
+                description="Money Plan currently uses fixed costs and KRW subscription totals.">
                 <View style={styles.metricList}>
-                  {report.guidance.map((item) => (
-                    <ThemedText key={item}>- {item}</ThemedText>
-                  ))}
+                  <ThemedText>
+                    - KRW subscriptions are included in salary ratio and budget range calculations.
+                  </ThemedText>
+                  <ThemedText>
+                    - Foreign-currency subscriptions excluded: {report.foreignCurrencySubscriptionCount}
+                  </ThemedText>
                 </View>
               </SectionCard>
             </>
@@ -310,5 +417,32 @@ const styles = StyleSheet.create({
   },
   metricList: {
     gap: Spacing.two,
+  },
+  actionList: {
+    gap: Spacing.three,
+  },
+  actionRow: {
+    gap: Spacing.one,
+    paddingTop: Spacing.one,
+  },
+  actionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: Spacing.two,
+  },
+  actionTitle: {
+    flex: 1,
+  },
+  candidateList: {
+    gap: Spacing.three,
+  },
+  candidateRow: {
+    gap: Spacing.one,
+    paddingTop: Spacing.one,
+  },
+  candidateTitleBlock: {
+    flex: 1,
+    gap: Spacing.one,
   },
 });

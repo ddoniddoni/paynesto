@@ -62,6 +62,33 @@ export const budgetHealthStatuses = ['healthy', 'caution', 'warning'] as const;
 
 export type BudgetHealthStatus = (typeof budgetHealthStatuses)[number];
 
+export const budgetGuidancePriorities = ['low', 'medium', 'high'] as const;
+
+export type BudgetGuidancePriority = (typeof budgetGuidancePriorities)[number];
+
+export type BudgetActionCard = {
+  id: 'fixed_costs' | 'subscriptions' | 'cash_flow';
+  title: string;
+  summary: string;
+  reason: string;
+  nextStep: string;
+  priority: BudgetGuidancePriority;
+};
+
+export type SubscriptionReviewCandidate = {
+  subscriptionId: string;
+  serviceName: string;
+  category: SubscriptionCategory;
+  monthlyEquivalentAmount: number;
+  currency: SupportedCurrency;
+  billingCycle: SubscriptionBillingCycle;
+  usageFrequency: UsageFrequency;
+  daysUntilBilling: number;
+  score: number;
+  reasons: string[];
+  suggestedAction: string;
+};
+
 export type UserFinancialProfile = {
   id: string;
   userId: string;
@@ -82,6 +109,7 @@ export type BudgetReport = {
   monthlySubscriptionTotal: number;
   monthlyCommittedCosts: number;
   disposableIncome: number;
+  committedCostRatio: number;
   recommendedSavingsTarget: number;
   recommendedLivingBudget: number;
   recommendedSubscriptionBudgetMin: number;
@@ -91,6 +119,8 @@ export type BudgetReport = {
   fixedCostStatus: BudgetHealthStatus;
   subscriptionStatus: BudgetHealthStatus;
   foreignCurrencySubscriptionCount: number;
+  actionCards: BudgetActionCard[];
+  subscriptionReviewCandidates: SubscriptionReviewCandidate[];
   guidance: string[];
 };
 
