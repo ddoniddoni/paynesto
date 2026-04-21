@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
+import { TextInputField } from '@/components/ui/text-input-field';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
 import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
 import { getUsdSubscriptionEstimates } from '@/features/exchange-rate/utils/exchange-rate-utils';
@@ -16,7 +17,8 @@ import { SubscriptionOptionGroup } from '@/features/subscriptions/components/sub
 import { useSubscriptionsQuery } from '@/features/subscriptions/hooks/use-subscriptions';
 import {
   defaultSubscriptionFilters,
-  filterSubscriptions,
+  defaultSubscriptionSortKey,
+  getSubscriptionListView,
   getNextUpcomingSubscription,
   getTrialEndingCount,
   hasActiveSubscriptionFilters,
@@ -24,6 +26,7 @@ import {
   type SubscriptionCategoryFilter,
   type SubscriptionCurrencyFilter,
   type SubscriptionFilters,
+  type SubscriptionSortKey,
 } from '@/features/subscriptions/utils/subscription-utils';
 import { formatAppDate } from '@/lib/date';
 import {
@@ -36,6 +39,7 @@ import {
 const categoryFilterOptions = ['all', ...subscriptionCategories] as const;
 const currencyFilterOptions = ['all', ...supportedCurrencies] as const;
 const billingCycleFilterOptions = ['all', ...subscriptionBillingCycles] as const;
+const sortOptions = ['next_billing_asc', 'monthly_cost_desc', 'service_name_asc'] as const;
 
 const categoryFilterLabels: Partial<Record<SubscriptionCategoryFilter, string>> = {
   all: 'All categories',
@@ -53,6 +57,12 @@ const billingCycleFilterLabels: Record<SubscriptionBillingCycleFilter, string> =
   yearly: 'Yearly',
 };
 
+const sortLabels: Record<SubscriptionSortKey, string> = {
+  next_billing_asc: 'Next billing',
+  monthly_cost_desc: 'Monthly cost',
+  service_name_asc: 'Service name',
+};
+
 const emptySubscriptions: Subscription[] = [];
 
 export function SubscriptionListScreen() {
@@ -61,16 +71,20 @@ export function SubscriptionListScreen() {
   const { data, isPending, isError, refetch, error } = useSubscriptionsQuery();
   const snapshotQuery = useLatestUsdKrwSnapshotQuery();
   const [filters, setFilters] = useState<SubscriptionFilters>(defaultSubscriptionFilters);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SubscriptionSortKey>(defaultSubscriptionSortKey);
   const subscriptions = data?.data ?? emptySubscriptions;
-  const filteredSubscriptions = useMemo(
-    () => filterSubscriptions(subscriptions, filters),
-    [filters, subscriptions]
+  const visibleSubscriptions = useMemo(
+    () => getSubscriptionListView(subscriptions, { filters, searchQuery, sortKey }),
+    [filters, searchQuery, sortKey, subscriptions]
   );
   const hasActiveFilters = hasActiveSubscriptionFilters(filters);
-  const nextBilling = getNextUpcomingSubscription(filteredSubscriptions);
-  const trialCount = getTrialEndingCount(filteredSubscriptions);
+  const hasSearchQuery = searchQuery.trim().length > 0;
+  const hasActiveListControls = hasActiveFilters || hasSearchQuery || sortKey !== defaultSubscriptionSortKey;
+  const nextBilling = getNextUpcomingSubscription(visibleSubscriptions);
+  const trialCount = getTrialEndingCount(visibleSubscriptions);
   const fxEstimates = getUsdSubscriptionEstimates(
-    filteredSubscriptions,
+    visibleSubscriptions,
     snapshotQuery.data?.data ?? null
   );
   const fxEstimateMap = useMemo(
@@ -81,12 +95,14 @@ export function SubscriptionListScreen() {
     data?.source === 'preview'
       ? 'Running in preview mode. Connect Supabase tables to switch to live subscription storage.'
       : 'Connected to Supabase subscription data.';
-  const resultCopy = hasActiveFilters
-    ? `${filteredSubscriptions.length} of ${subscriptions.length} subscriptions match these filters.`
+  const resultCopy = hasActiveListControls
+    ? `${visibleSubscriptions.length} of ${subscriptions.length} subscriptions match the current view.`
     : `${subscriptions.length} subscriptions are visible.`;
 
-  const resetFilters = useCallback(() => {
+  const resetListControls = useCallback(() => {
     setFilters(defaultSubscriptionFilters);
+    setSearchQuery('');
+    setSortKey(defaultSubscriptionSortKey);
   }, []);
 
   const updateFilter = useCallback(
@@ -150,7 +166,7 @@ export function SubscriptionListScreen() {
   return (
     <ThemedView style={styles.page}>
       <FlatList
-        data={filteredSubscriptions}
+        data={visibleSubscriptions}
         keyExtractor={(item) => item.id}
         contentInset={{
           top: safeAreaInsets.top,
@@ -180,7 +196,7 @@ export function SubscriptionListScreen() {
             <View style={styles.summaryGrid}>
               <SectionCard
                 eyebrow="Active subscriptions"
-                title={`${filteredSubscriptions.filter((subscription) => subscription.isActive).length}`}
+                title={`${visibleSubscriptions.filter((subscription) => subscription.isActive).length}`}
                 description="Visible subscriptions that are currently active and still charging."
               />
               <SectionCard
@@ -219,12 +235,31 @@ export function SubscriptionListScreen() {
                     Filter by the dimensions people use when reviewing recurring costs.
                   </ThemedText>
                 </View>
-                {hasActiveFilters ? (
-                  <Button onPress={resetFilters} size="sm" variant="ghost">
+                {hasActiveListControls ? (
+                  <Button onPress={resetListControls} size="sm" variant="ghost">
                     Reset
                   </Button>
                 ) : null}
               </View>
+
+              <TextInputField
+                autoCapitalize="none"
+                autoCorrect={false}
+                clearButtonMode="while-editing"
+                label="Search"
+                onChangeText={setSearchQuery}
+                placeholder="Search by service or note"
+                returnKeyType="search"
+                value={searchQuery}
+              />
+
+              <SubscriptionOptionGroup
+                label="Sort"
+                value={sortKey}
+                options={sortOptions}
+                labels={sortLabels}
+                onChange={setSortKey}
+              />
 
               <SubscriptionOptionGroup
                 label="Category"
@@ -255,11 +290,15 @@ export function SubscriptionListScreen() {
             <SectionCard
               eyebrow="No matching subscriptions"
               tone="accent"
-              title="Try another filter"
-              description="Nothing in your current subscription list matches this category, currency, and billing cycle combination.">
+              title={hasSearchQuery ? 'Try another search' : 'Try another filter'}
+              description={
+                hasSearchQuery
+                  ? 'Nothing in your current subscription list matches this search and filter combination.'
+                  : 'Nothing in your current subscription list matches this category, currency, and billing cycle combination.'
+              }>
               <View style={styles.emptyActions}>
-                <Button onPress={resetFilters} variant="secondary">
-                  Reset filters
+                <Button onPress={resetListControls} variant="secondary">
+                  Reset view
                 </Button>
                 <Button onPress={() => router.push('/subscriptions/create' as Href)} variant="ghost">
                   Add subscription
