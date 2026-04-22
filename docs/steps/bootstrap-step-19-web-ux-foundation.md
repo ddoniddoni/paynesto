@@ -40,6 +40,9 @@ polishing auth UI, and fixing the Expo Router provider warning.
 
 ### 5. Validation
 
+- [x] Add app shell with hamburger drawer and bottom app navigation
+- [x] Remove web-like authenticated top pill menu
+- [x] Adjust app screen top insets for the new app bar
 - [x] Capture browser screenshots
 - [x] Run `npm.cmd run lint`
 - [x] Run `npm.cmd run typecheck`

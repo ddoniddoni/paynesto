@@ -10,6 +10,8 @@ After this step:
 - the web login screen feels like a practical finance product instead of a demo
 - the app uses calmer, higher-contrast colors
 - cards, buttons, and inputs have more mature spacing and radii
+- the authenticated app has a native-app-like top bar, hamburger menu, and
+  bottom primary navigation
 - Expo Router no longer warns about provider files being treated as routes
 - browser screenshots are captured after changes
 
@@ -20,6 +22,9 @@ Browser testing found:
 - the first loading screen spends too much visual space on a small card
 - the login screen uses a harsh dark/neon palette
 - large rounded cards make the product feel toy-like
+- the authenticated app still reads like a narrow web page because the browser
+  navigation uses a top pill menu and feature screens rely on in-page "Open"
+  navigation buttons
 - form actions are visually flat and hard to scan
 - Expo Router warns that `src/app/providers/app-providers.tsx` is missing a
   default route export
@@ -84,7 +89,16 @@ Browser testing found:
 - Improve hierarchy between Preview, Google, and email login.
 - Keep form labels, errors, and buttons accessible.
 
-### 5. Browser verify
+### 5. Add app-like authenticated navigation
+
+- Add a reusable app chrome with a safe-area-aware top app bar.
+- Add a hamburger drawer for primary and secondary sections.
+- Keep primary sections available through bottom navigation.
+- Remove redundant Home navigation buttons that make the app feel web-like.
+- Adjust app-screen top insets so the new app bar does not create doubled safe
+  area spacing.
+
+### 6. Browser verify
 
 - Start Expo web.
 - Capture mobile and desktop screenshots.
