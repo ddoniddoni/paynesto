@@ -72,11 +72,11 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   input: {
-    minHeight: 50,
+    minHeight: 48,
     borderRadius: Radius.md,
     borderWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 11,
     fontSize: 16,
     lineHeight: 22,
   },

@@ -113,13 +113,13 @@ export default function HomeScreen() {
     <ThemedView style={styles.page}>
       <ScrollView
         contentInset={{
-          top: safeAreaInsets.top,
+          top: 0,
           left: safeAreaInsets.left,
           right: safeAreaInsets.right,
           bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
         }}
         scrollIndicatorInsets={{
-          top: safeAreaInsets.top,
+          top: 0,
           bottom: safeAreaInsets.bottom + BottomTabInset,
         }}
         contentContainerStyle={styles.scrollContent}>
@@ -154,15 +154,11 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.heroActions}>
-              <Button onPress={() => router.push('/subscriptions' as Href)}>Open subscriptions</Button>
-              <Button variant="secondary" onPress={() => router.push('/money-plan' as Href)}>
-                Open Money Plan
+              <Button onPress={() => router.push('/subscriptions/create' as Href)}>
+                Add subscription
               </Button>
-              <Button
-                variant="ghost"
-                onPress={() => router.push('/my-page' as Href)}
-                style={styles.ghostButton}>
-                Open My Page
+              <Button variant="secondary" onPress={() => router.push('/money-plan' as Href)}>
+                Update Money Plan
               </Button>
             </View>
           </ThemedView>
@@ -354,9 +350,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-  },
-  ghostButton: {
-    minWidth: 96,
   },
   metricsGrid: {
     flexDirection: 'row',

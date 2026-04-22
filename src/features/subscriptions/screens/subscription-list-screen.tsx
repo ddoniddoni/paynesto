@@ -169,7 +169,7 @@ export function SubscriptionListScreen() {
         data={visibleSubscriptions}
         keyExtractor={(item) => item.id}
         contentInset={{
-          top: safeAreaInsets.top,
+          top: 0,
           left: safeAreaInsets.left,
           right: safeAreaInsets.right,
           bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,

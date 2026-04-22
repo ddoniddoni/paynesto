@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
-import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type CenteredStateProps = {
@@ -56,13 +56,13 @@ const styles = StyleSheet.create({
   },
   container: {
     width: '100%',
-    maxWidth: MaxContentWidth,
+    maxWidth: 560,
   },
   card: {
     gap: Spacing.three,
     borderRadius: Radius.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 28,
   },
   copyBlock: {
     gap: Spacing.one,

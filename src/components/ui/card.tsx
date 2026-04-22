@@ -18,7 +18,6 @@ export function Card({ tone = 'default', style, children, ...rest }: CardProps) 
         styles.card,
         {
           borderColor: tone === 'accent' ? theme.borderStrong : theme.border,
-          shadowColor: theme.text,
         },
         style,
       ]}
@@ -35,12 +34,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     gap: Spacing.two,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 2,
   },
 });

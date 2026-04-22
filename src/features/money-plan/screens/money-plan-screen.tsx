@@ -157,7 +157,7 @@ export function MoneyPlanScreen() {
     <ThemedView style={styles.page}>
       <ScrollView
         contentInset={{
-          top: safeAreaInsets.top,
+          top: 0,
           left: safeAreaInsets.left,
           right: safeAreaInsets.right,
           bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,

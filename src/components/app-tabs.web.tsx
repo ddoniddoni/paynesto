@@ -3,42 +3,67 @@ import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps }
 import React from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 
+import { AppChrome } from './app-chrome';
 import { ThemedText } from './themed-text';
-import { ThemedView } from './themed-view';
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AppTabs() {
   return (
     <Tabs>
-      <TabSlot style={{ height: '100%' }} />
-      <TabList asChild>
-        <CustomTabList>
-          <TabTrigger name="home" href="/" asChild>
-            <TabButton>Home</TabButton>
-          </TabTrigger>
-          <TabTrigger name="subscriptions" href={'/subscriptions' as Href} asChild>
-            <TabButton>Subscriptions</TabButton>
-          </TabTrigger>
-          <TabTrigger name="money-plan" href={'/money-plan' as Href} asChild>
-            <TabButton>Money Plan</TabButton>
-          </TabTrigger>
-        </CustomTabList>
-      </TabList>
+      <AppChrome
+        bottomNavigation={
+          <TabList asChild>
+            <CustomTabList>
+              <TabTrigger name="home" href="/" asChild>
+                <TabButton>Home</TabButton>
+              </TabTrigger>
+              <TabTrigger name="subscriptions" href={'/subscriptions' as Href} asChild>
+                <TabButton>Subscriptions</TabButton>
+              </TabTrigger>
+              <TabTrigger name="money-plan" href={'/money-plan' as Href} asChild>
+                <TabButton>Money Plan</TabButton>
+              </TabTrigger>
+              <TabTrigger name="my-page" href={'/my-page' as Href} asChild>
+                <TabButton>My Page</TabButton>
+              </TabTrigger>
+            </CustomTabList>
+          </TabList>
+        }>
+        <TabSlot style={{ height: '100%' }} />
+      </AppChrome>
     </Tabs>
   );
 }
 
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const theme = useTheme();
+
   return (
-    <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView
-        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
-        style={styles.tabButtonView}>
-        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
-          {children}
-        </ThemedText>
-      </ThemedView>
+    <Pressable
+      {...props}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.tabButton,
+        {
+          backgroundColor: isFocused ? theme.surfaceAccent : 'transparent',
+          borderColor: isFocused ? theme.borderStrong : 'transparent',
+        },
+        pressed && styles.pressed,
+      ]}>
+      <View
+        style={[
+          styles.tabIndicator,
+          { backgroundColor: isFocused ? theme.primary : theme.textMuted },
+        ]}
+      />
+      <ThemedText
+        numberOfLines={1}
+        type="smallBold"
+        themeColor={isFocused ? 'text' : 'textSecondary'}>
+        {children}
+      </ThemedText>
     </Pressable>
   );
 }
@@ -46,45 +71,35 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
-      <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Paynesto
-        </ThemedText>
-
-        {props.children}
-      </ThemedView>
+      {props.children}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   tabListContainer: {
-    position: 'absolute',
     width: '100%',
-    padding: Spacing.three,
-    justifyContent: 'center',
-    alignItems: 'center',
     flexDirection: 'row',
-  },
-  innerContainer: {
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.five,
-    borderRadius: Spacing.five,
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexGrow: 1,
-    gap: Spacing.two,
-    maxWidth: MaxContentWidth,
-  },
-  brandText: {
-    marginRight: 'auto',
+    alignItems: 'stretch',
+    justifyContent: 'space-between',
+    gap: Spacing.one,
   },
   pressed: {
     opacity: 0.7,
   },
-  tabButtonView: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
+  tabButton: {
+    flex: 1,
+    minHeight: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.one,
+  },
+  tabIndicator: {
+    width: 18,
+    height: 3,
+    borderRadius: Radius.pill,
   },
 });
