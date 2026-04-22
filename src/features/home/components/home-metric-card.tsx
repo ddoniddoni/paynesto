@@ -32,7 +32,7 @@ export function HomeMetricCard({
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 164,
+    minHeight: 124,
     justifyContent: 'space-between',
     gap: Spacing.two,
   },

@@ -43,7 +43,7 @@ export function SubscriptionListItem({
           <View style={styles.copyBlock}>
             <ThemedText type="heading">{subscription.serviceName}</ThemedText>
             <ThemedText type="bodySm" themeColor="textSecondary">
-              {subscription.category} · {subscription.paymentMethodType}
+              {subscription.category} / {subscription.paymentMethodType}
             </ThemedText>
           </View>
           <SubscriptionStatusBadge status={getSubscriptionStatus(subscription)} />
@@ -80,7 +80,7 @@ export function SubscriptionListItem({
 
         <View style={styles.footerRow}>
           <ThemedText type="bodySm" themeColor="textSecondary">
-            Next billing {formatAppDate(subscription.nextBillingDate)} · D
+            Next billing {formatAppDate(subscription.nextBillingDate)} / D
             {daysUntilBilling >= 0 ? `-${daysUntilBilling}` : `+${Math.abs(daysUntilBilling)}`}
           </ThemedText>
           {subscription.currency === 'USD' ? (

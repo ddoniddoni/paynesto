@@ -1,5 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CenteredState } from '@/components/shared/centered-state';
@@ -8,7 +8,6 @@ import { ThemedView } from '@/components/themed-view';
 import { Button } from '@/components/ui/button';
 import { SectionCard } from '@/components/ui/section-card';
 import { BottomTabInset, MaxContentWidth, Radius, Spacing } from '@/constants/theme';
-import { useAuthSession } from '@/features/auth/hooks/use-auth-session';
 import { useLatestUsdKrwSnapshotQuery } from '@/features/exchange-rate/hooks/use-exchange-rate';
 import { formatExchangeRate } from '@/features/exchange-rate/utils/exchange-rate-utils';
 import { HomeActionCard } from '@/features/home/components/home-action-card';
@@ -40,16 +39,39 @@ function formatDaysUntilBilling(daysUntilBilling: number | null) {
   return `In ${daysUntilBilling} day${daysUntilBilling === 1 ? '' : 's'}`;
 }
 
+function DashboardRow({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <View style={styles.dashboardRow}>
+      <View style={styles.dashboardRowCopy}>
+        <ThemedText type="bodySm" themeColor="textSecondary">
+          {label}
+        </ThemedText>
+        <ThemedText numberOfLines={1} type="smallBold">
+          {value}
+        </ThemedText>
+      </View>
+      <ThemedText numberOfLines={2} type="bodySm" themeColor="textSecondary" style={styles.dashboardRowDetail}>
+        {detail}
+      </ThemedText>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const router = useRouter();
-  const { user } = useAuthSession();
   const subscriptionsQuery = useSubscriptionsQuery();
   const profileQuery = useFinancialProfileQuery();
   const snapshotQuery = useLatestUsdKrwSnapshotQuery();
 
-  const isWideLayout = width >= 720;
   const subscriptions = subscriptionsQuery.data?.data ?? [];
   const profile = profileQuery.data?.data ?? null;
   const snapshot = snapshotQuery.data?.data ?? null;
@@ -58,29 +80,6 @@ export default function HomeScreen() {
     profile,
     snapshot,
   });
-
-  const subscriptionSourceLabel =
-    subscriptionsQuery.data?.source === 'preview'
-      ? 'Preview subscriptions'
-      : subscriptionsQuery.data?.source === 'supabase'
-        ? 'Supabase subscriptions'
-        : 'Loading subscriptions';
-  const profileSourceLabel =
-    profileQuery.data?.source === 'preview'
-      ? 'Preview money plan'
-      : profileQuery.data?.source === 'supabase'
-        ? 'Supabase money plan'
-        : profileQuery.isError
-          ? 'Money Plan unavailable'
-          : 'Loading money plan';
-  const fxSourceLabel =
-    snapshotQuery.data?.source === 'preview'
-      ? 'Preview FX'
-      : snapshotQuery.data?.source === 'supabase'
-        ? 'Live FX sync'
-        : snapshotQuery.isError
-          ? 'FX unavailable'
-          : 'Loading FX';
 
   if (subscriptionsQuery.isPending) {
     return (
@@ -124,33 +123,57 @@ export default function HomeScreen() {
         }}
         contentContainerStyle={styles.scrollContent}>
         <View style={styles.container}>
-          <ThemedView type="surfaceElevated" style={styles.heroSection}>
-            <View style={styles.heroCopy}>
-              <ThemedText type="eyebrow" themeColor="textSecondary">
-                This month
-              </ThemedText>
-              <ThemedText type="title">
-                {summary.activeSubscriptionCount > 0
-                  ? formatMoneyAmount(summary.totalMonthlySubscriptionSpend)
-                  : 'Ready to track recurring spend'}
-              </ThemedText>
-              <ThemedText style={styles.lead} themeColor="textSecondary">
-                {summary.activeSubscriptionCount > 0
-                  ? `${user?.email ?? 'Your account'} is tracking ${summary.activeSubscriptionCount} active subscription(s). Home now combines recurring cost, salary context, and FX-sensitive spend in one view.`
-                  : 'Add your first subscription and connect Money Plan to unlock a fuller monthly dashboard.'}
-              </ThemedText>
+          <ThemedView type="surfaceElevated" style={styles.summaryPanel}>
+            <View style={styles.summaryHeader}>
+              <View style={styles.summaryCopy}>
+                <ThemedText type="eyebrow" themeColor="textSecondary">
+                  Monthly spend
+                </ThemedText>
+                <ThemedText type="title">
+                  {summary.activeSubscriptionCount > 0
+                    ? formatMoneyAmount(summary.totalMonthlySubscriptionSpend)
+                    : 'Track your first plan'}
+                </ThemedText>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  {summary.activeSubscriptionCount} active / {summary.trialEndingCount} trial check
+                </ThemedText>
+              </View>
+
+              <ThemedView type="surfaceAccent" style={styles.statusPill}>
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  {summary.salaryHealthStatus
+                    ? formatHealthStatus(summary.salaryHealthStatus)
+                    : 'Setup needed'}
+                </ThemedText>
+              </ThemedView>
             </View>
 
-            <View style={styles.heroMeta}>
-              <ThemedText type="bodySm" themeColor="textSecondary">
-                {subscriptionSourceLabel}
-              </ThemedText>
-              <ThemedText type="bodySm" themeColor="textSecondary">
-                {profileSourceLabel}
-              </ThemedText>
-              <ThemedText type="bodySm" themeColor="textSecondary">
-                {fxSourceLabel}
-              </ThemedText>
+            <View style={styles.summaryRows}>
+              <DashboardRow
+                label="Next billing"
+                value={summary.nextBilling ? summary.nextBilling.serviceName : 'Nothing scheduled'}
+                detail={
+                  summary.nextBilling
+                    ? `${formatDaysUntilBilling(summary.daysUntilNextBilling)} / ${formatSubscriptionAmount(
+                        summary.nextBilling.amount,
+                        summary.nextBilling.currency
+                      )}`
+                    : 'Add a subscription'
+                }
+              />
+              <DashboardRow
+                label="Salary ratio"
+                value={
+                  summary.salaryRatio !== null
+                    ? formatMoneyRatio(summary.salaryRatio)
+                    : 'Money Plan needed'
+                }
+                detail={
+                  profile
+                    ? `${formatMoneyAmount(summary.disposableIncome ?? 0)} after fixed costs`
+                    : 'Add salary and fixed costs'
+                }
+              />
             </View>
 
             <View style={styles.heroActions}>
@@ -165,56 +188,39 @@ export default function HomeScreen() {
 
           <View style={styles.metricsGrid}>
             <HomeMetricCard
-              eyebrow="Monthly subscriptions"
-              value={formatMoneyAmount(summary.totalMonthlySubscriptionSpend)}
+              eyebrow="KRW base"
+              value={formatMoneyAmount(summary.monthlyKrwSubscriptionTotal)}
               description={
                 summary.usdSubscriptionCount > 0
-                  ? `${formatMoneyAmount(summary.monthlyKrwSubscriptionTotal)} KRW + ${formatMoneyAmount(summary.monthlyUsdEstimateTotal)} FX estimate`
-                  : 'Based on active monthly-equivalent subscriptions'
+                  ? `${summary.usdSubscriptionCount} USD plan(s) tracked separately`
+                  : 'Monthly-equivalent active plans'
               }
-              style={isWideLayout ? styles.halfCard : undefined}
+              style={styles.metricCard}
               tone="accent"
-            />
-            <HomeMetricCard
-              eyebrow="Next billing"
-              value={summary.nextBilling ? summary.nextBilling.serviceName : 'Nothing scheduled'}
-              description={
-                summary.nextBilling
-                  ? `${formatDaysUntilBilling(summary.daysUntilNextBilling)} · ${formatSubscriptionAmount(
-                      summary.nextBilling.amount,
-                      summary.nextBilling.currency
-                    )}`
-                  : 'Add a subscription to start tracking upcoming payments'
-              }
-              style={isWideLayout ? styles.halfCard : undefined}
-            />
-            <HomeMetricCard
-              eyebrow="Salary ratio"
-              value={
-                summary.salaryRatio !== null
-                  ? `${formatMoneyRatio(summary.salaryRatio)} · ${formatHealthStatus(summary.salaryHealthStatus ?? 'healthy')}`
-                  : 'Money Plan needed'
-              }
-              description={
-                profile
-                  ? `Disposable income after fixed costs: ${formatMoneyAmount(summary.disposableIncome ?? 0)}`
-                  : 'Connect take-home pay and fixed costs to unlock budget-aware guidance'
-              }
-              style={isWideLayout ? styles.halfCard : undefined}
             />
             <HomeMetricCard
               eyebrow="USD estimate"
               value={
                 summary.usdSubscriptionCount > 0
                   ? formatMoneyAmount(summary.monthlyUsdEstimateTotal)
-                  : 'No USD subscriptions'
+                  : 'None'
               }
               description={
                 snapshot
-                  ? `${formatExchangeRate(snapshot.rate)} · ${formatAppDate(snapshot.fetchedAt, 'yyyy.MM.dd HH:mm')}`
-                  : 'FX estimates will appear when a USD/KRW snapshot is available'
+                  ? `${formatExchangeRate(snapshot.rate)} / ${formatAppDate(snapshot.fetchedAt, 'yyyy.MM.dd HH:mm')}`
+                  : 'Waiting for FX snapshot'
               }
-              style={isWideLayout ? styles.halfCard : undefined}
+              style={styles.metricCard}
+            />
+            <HomeMetricCard
+              eyebrow="Committed"
+              value={
+                summary.totalMonthlyCommittedCost !== null
+                  ? formatMoneyAmount(summary.totalMonthlyCommittedCost)
+                  : 'Setup needed'
+              }
+              description={profile ? 'Fixed costs plus subscriptions' : 'Connect Money Plan'}
+              style={styles.metricCard}
             />
           </View>
 
@@ -251,15 +257,11 @@ export default function HomeScreen() {
 
           <SectionCard
             eyebrow="What to do next"
-            title="Action-oriented dashboard cards"
-            description="These recommendations respond to your current subscriptions, budget setup, and FX-sensitive plans.">
+            title="Recommended actions"
+            description="Prioritized from your subscriptions, budget setup, and FX-sensitive plans.">
             <View style={styles.actionsGrid}>
               {summary.actions.map((action) => (
-                <HomeActionCard
-                  key={action.id}
-                  action={action}
-                  style={isWideLayout ? styles.actionHalfCard : undefined}
-                />
+                <HomeActionCard key={action.id} action={action} />
               ))}
             </View>
           </SectionCard>
@@ -322,29 +324,53 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 24,
   },
   container: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    gap: Spacing.three,
-  },
-  heroSection: {
-    gap: Spacing.three,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  heroCopy: {
     gap: Spacing.two,
   },
-  lead: {
-    maxWidth: 620,
+  summaryPanel: {
+    gap: Spacing.three,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
-  heroMeta: {
-    gap: Spacing.one,
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+  },
+  summaryCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: Spacing.two,
+  },
+  statusPill: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  summaryRows: {
+    gap: Spacing.two,
+  },
+  dashboardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  dashboardRowCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  dashboardRowDetail: {
+    flexShrink: 1,
+    textAlign: 'right',
   },
   heroActions: {
     flexDirection: 'row',
@@ -354,22 +380,15 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.three,
+    gap: Spacing.two,
   },
-  halfCard: {
-    width: '48%',
-    minWidth: 280,
+  metricCard: {
+    minWidth: 154,
     flexGrow: 1,
+    flexBasis: 0,
   },
   actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.three,
-  },
-  actionHalfCard: {
-    width: '48%',
-    minWidth: 280,
-    flexGrow: 1,
+    gap: Spacing.two,
   },
   bulletList: {
     gap: Spacing.two,

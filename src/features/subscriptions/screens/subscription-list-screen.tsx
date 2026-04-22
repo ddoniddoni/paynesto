@@ -42,28 +42,52 @@ const billingCycleFilterOptions = ['all', ...subscriptionBillingCycles] as const
 const sortOptions = ['next_billing_asc', 'monthly_cost_desc', 'service_name_asc'] as const;
 
 const categoryFilterLabels: Partial<Record<SubscriptionCategoryFilter, string>> = {
-  all: 'All categories',
+  all: 'All',
 };
 
 const currencyFilterLabels: Record<SubscriptionCurrencyFilter, string> = {
-  all: 'All currencies',
+  all: 'All',
   KRW: 'KRW',
   USD: 'USD',
 };
 
 const billingCycleFilterLabels: Record<SubscriptionBillingCycleFilter, string> = {
-  all: 'All cycles',
+  all: 'All',
   monthly: 'Monthly',
   yearly: 'Yearly',
 };
 
 const sortLabels: Record<SubscriptionSortKey, string> = {
-  next_billing_asc: 'Next billing',
-  monthly_cost_desc: 'Monthly cost',
-  service_name_asc: 'Service name',
+  next_billing_asc: 'Next',
+  monthly_cost_desc: 'Cost',
+  service_name_asc: 'Name',
 };
 
 const emptySubscriptions: Subscription[] = [];
+
+function SummaryChip({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <ThemedView type="surfaceElevated" style={styles.summaryChip}>
+      <ThemedText type="eyebrow" themeColor="textSecondary">
+        {label}
+      </ThemedText>
+      <ThemedText numberOfLines={1} type="heading">
+        {value}
+      </ThemedText>
+      <ThemedText numberOfLines={2} type="bodySm" themeColor="textSecondary">
+        {detail}
+      </ThemedText>
+    </ThemedView>
+  );
+}
 
 export function SubscriptionListScreen() {
   const router = useRouter();
@@ -83,6 +107,7 @@ export function SubscriptionListScreen() {
   const hasActiveListControls = hasActiveFilters || hasSearchQuery || sortKey !== defaultSubscriptionSortKey;
   const nextBilling = getNextUpcomingSubscription(visibleSubscriptions);
   const trialCount = getTrialEndingCount(visibleSubscriptions);
+  const activeVisibleCount = visibleSubscriptions.filter((subscription) => subscription.isActive).length;
   const fxEstimates = getUsdSubscriptionEstimates(
     visibleSubscriptions,
     snapshotQuery.data?.data ?? null
@@ -91,13 +116,10 @@ export function SubscriptionListScreen() {
     () => new Map(fxEstimates.map((estimate) => [estimate.subscriptionId, estimate])),
     [fxEstimates]
   );
-  const sourceLabel =
-    data?.source === 'preview'
-      ? 'Running in preview mode. Connect Supabase tables to switch to live subscription storage.'
-      : 'Connected to Supabase subscription data.';
+  const syncLabel = data?.source === 'preview' ? 'Preview' : 'Synced';
   const resultCopy = hasActiveListControls
-    ? `${visibleSubscriptions.length} of ${subscriptions.length} subscriptions match the current view.`
-    : `${subscriptions.length} subscriptions are visible.`;
+    ? `${visibleSubscriptions.length} of ${subscriptions.length}`
+    : `${subscriptions.length} total`;
 
   const resetListControls = useCallback(() => {
     setFilters(defaultSubscriptionFilters);
@@ -177,64 +199,46 @@ export function SubscriptionListScreen() {
         contentContainerStyle={styles.contentContainer}
         ListHeaderComponent={
           <View style={styles.container}>
-            <ThemedView type="surfaceElevated" style={styles.heroCard}>
-              <ThemedText type="eyebrow" themeColor="textSecondary">
-                Subscription hub
-              </ThemedText>
-              <ThemedText type="title" style={styles.heroTitle}>
-                Subscriptions
-              </ThemedText>
-              <ThemedText themeColor="textSecondary">{sourceLabel}</ThemedText>
-              <ThemedText type="bodySm" themeColor="textSecondary">
-                {resultCopy}
-              </ThemedText>
-              <Button onPress={() => router.push('/subscriptions/create' as Href)}>
-                Add subscription
+            <View style={styles.appHeader}>
+              <View style={styles.headerCopy}>
+                <ThemedText type="eyebrow" themeColor="textSecondary">
+                  {syncLabel} list
+                </ThemedText>
+                <ThemedText type="title">Subscriptions</ThemedText>
+                <ThemedText type="bodySm" themeColor="textSecondary">
+                  {resultCopy} / {activeVisibleCount} active
+                </ThemedText>
+              </View>
+              <Button size="sm" onPress={() => router.push('/subscriptions/create' as Href)}>
+                Add
               </Button>
-            </ThemedView>
+            </View>
 
             <View style={styles.summaryGrid}>
-              <SectionCard
-                eyebrow="Active subscriptions"
-                title={`${visibleSubscriptions.filter((subscription) => subscription.isActive).length}`}
-                description="Visible subscriptions that are currently active and still charging."
-              />
-              <SectionCard
-                eyebrow="Next billing"
-                title={nextBilling ? nextBilling.serviceName : 'None'}
-                description={
+              <SummaryChip
+                label="Next"
+                value={nextBilling ? nextBilling.serviceName : 'None'}
+                detail={
                   nextBilling
-                    ? `${formatAppDate(nextBilling.nextBillingDate)} billing date`
-                    : 'No upcoming billing date found in the current results.'
+                    ? `${formatAppDate(nextBilling.nextBillingDate)} billing`
+                    : 'No upcoming date'
                 }
               />
-              <SectionCard
-                eyebrow="Trial ending"
-                title={`${trialCount}`}
-                description="Visible subscriptions that still need free-trial attention."
+              <SummaryChip
+                label="Trial"
+                value={`${trialCount}`}
+                detail="Needs free-trial attention"
               />
-              <SectionCard
-                eyebrow="FX estimate"
-                title={`${fxEstimates.length} USD subscriptions`}
-                description={
-                  snapshotQuery.data?.data
-                    ? `${snapshotQuery.data.data.sourceLabel} is used for visible KRW estimates.`
-                    : 'USD subscriptions will show KRW estimates once an FX snapshot is available.'
-                }
+              <SummaryChip
+                label="FX"
+                value={`${fxEstimates.length}`}
+                detail="USD plans with KRW estimate"
               />
             </View>
 
-            <ThemedView type="surfaceElevated" style={styles.filterCard}>
+            <ThemedView type="surfaceElevated" style={styles.filterPanel}>
               <View style={styles.filterHeader}>
-                <View style={styles.filterCopy}>
-                  <ThemedText type="eyebrow" themeColor="textSecondary">
-                    Filters
-                  </ThemedText>
-                  <ThemedText type="heading">Narrow the list</ThemedText>
-                  <ThemedText themeColor="textSecondary">
-                    Filter by the dimensions people use when reviewing recurring costs.
-                  </ThemedText>
-                </View>
+                <ThemedText type="heading">Find plans</ThemedText>
                 {hasActiveListControls ? (
                   <Button onPress={resetListControls} size="sm" variant="ghost">
                     Reset
@@ -248,40 +252,41 @@ export function SubscriptionListScreen() {
                 clearButtonMode="while-editing"
                 label="Search"
                 onChangeText={setSearchQuery}
-                placeholder="Search by service or note"
+                placeholder="Service or note"
                 returnKeyType="search"
                 value={searchQuery}
               />
 
-              <SubscriptionOptionGroup
-                label="Sort"
-                value={sortKey}
-                options={sortOptions}
-                labels={sortLabels}
-                onChange={setSortKey}
-              />
-
-              <SubscriptionOptionGroup
-                label="Category"
-                value={filters.category}
-                options={categoryFilterOptions}
-                labels={categoryFilterLabels}
-                onChange={(value) => updateFilter('category', value)}
-              />
-              <SubscriptionOptionGroup
-                label="Currency"
-                value={filters.currency}
-                options={currencyFilterOptions}
-                labels={currencyFilterLabels}
-                onChange={(value) => updateFilter('currency', value)}
-              />
-              <SubscriptionOptionGroup
-                label="Billing cycle"
-                value={filters.billingCycle}
-                options={billingCycleFilterOptions}
-                labels={billingCycleFilterLabels}
-                onChange={(value) => updateFilter('billingCycle', value)}
-              />
+              <View style={styles.controlStack}>
+                <SubscriptionOptionGroup
+                  label="Sort"
+                  value={sortKey}
+                  options={sortOptions}
+                  labels={sortLabels}
+                  onChange={setSortKey}
+                />
+                <SubscriptionOptionGroup
+                  label="Category"
+                  value={filters.category}
+                  options={categoryFilterOptions}
+                  labels={categoryFilterLabels}
+                  onChange={(value) => updateFilter('category', value)}
+                />
+                <SubscriptionOptionGroup
+                  label="Currency"
+                  value={filters.currency}
+                  options={currencyFilterOptions}
+                  labels={currencyFilterLabels}
+                  onChange={(value) => updateFilter('currency', value)}
+                />
+                <SubscriptionOptionGroup
+                  label="Cycle"
+                  value={filters.billingCycle}
+                  options={billingCycleFilterOptions}
+                  labels={billingCycleFilterLabels}
+                  onChange={(value) => updateFilter('billingCycle', value)}
+                />
+              </View>
             </ThemedView>
           </View>
         }
@@ -319,50 +324,59 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 24,
   },
   container: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    gap: Spacing.three,
-    marginBottom: Spacing.three,
-  },
-  heroCard: {
     gap: Spacing.two,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    marginBottom: Spacing.two,
   },
-  heroTitle: {
-    maxWidth: 520,
-  },
-  summaryGrid: {
-    gap: Spacing.three,
-  },
-  filterCard: {
-    gap: Spacing.three,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
-  filterHeader: {
+  appHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.three,
   },
-  filterCopy: {
+  headerCopy: {
     flex: 1,
-    minWidth: 220,
+    minWidth: 0,
     gap: Spacing.one,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  summaryChip: {
+    flex: 1,
+    minWidth: 104,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: Spacing.one,
+  },
+  filterPanel: {
+    gap: Spacing.three,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  controlStack: {
+    gap: Spacing.three,
   },
   listItem: {
     width: '100%',
     maxWidth: MaxContentWidth,
-    marginBottom: Spacing.three,
+    marginBottom: Spacing.two,
   },
   emptyFilterContainer: {
     width: '100%',

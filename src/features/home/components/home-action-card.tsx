@@ -21,9 +21,15 @@ export function HomeActionCard({ action, style, ...rest }: HomeActionCardProps) 
           {action.eyebrow}
         </ThemedText>
         <ThemedText type="heading">{action.title}</ThemedText>
-        <ThemedText themeColor="textSecondary">{action.description}</ThemedText>
+        <ThemedText numberOfLines={2} themeColor="textSecondary">
+          {action.description}
+        </ThemedText>
       </View>
-      <Button size="sm" variant={action.tone === 'accent' ? 'primary' : 'secondary'} onPress={() => router.push(action.href as Href)}>
+      <Button
+        size="sm"
+        variant={action.tone === 'accent' ? 'primary' : 'secondary'}
+        onPress={() => router.push(action.href as Href)}
+        style={styles.actionButton}>
         {action.ctaLabel}
       </Button>
     </Card>
@@ -32,10 +38,13 @@ export function HomeActionCard({ action, style, ...rest }: HomeActionCardProps) 
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 220,
+    minHeight: 152,
     justifyContent: 'space-between',
   },
   copyBlock: {
     gap: Spacing.two,
+  },
+  actionButton: {
+    alignSelf: 'flex-end',
   },
 });

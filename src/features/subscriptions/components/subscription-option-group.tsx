@@ -79,8 +79,8 @@ const styles = StyleSheet.create({
   option: {
     borderWidth: 1,
     borderRadius: Radius.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   pressed: {
     opacity: 0.82,
